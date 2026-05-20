@@ -7349,11 +7349,53 @@ setInterval(fetchPiPrice, 300000);
     setTimeout(()=>waitFirebase(fn,n+1), 100);
   }
 
+  // ════════════════════════════════════════════════════════════
+  //  LOAD GALERI PUBLIK — baca foto dari Firestore koleksi 'galeri'
+  //  dan tampilkan di section #galeri (menggantikan gambar statis)
+  // ════════════════════════════════════════════════════════════
+  function loadGaleriPublic() {
+    const db = window.db;
+    if (!db) return;
+    const grid = document.querySelector('#galeri .galeri-grid');
+    if (!grid) return;
+
+    db.collection('galeri')
+      .orderBy('uploadedAt', 'desc')
+      .limit(12)
+      .get()
+      .then(snap => {
+        // Filter foto saja di client-side (hindari composite index)
+        const fotos = snap.docs.filter(doc => doc.data().tipe === 'foto' && doc.data().url);
+        if (fotos.length === 0) return; // tetap tampil gambar statis jika belum ada foto
+
+        grid.innerHTML = ''; // hapus gambar statis, ganti dengan yang dari Firestore
+        fotos.forEach((doc, idx) => {
+          const d = doc.data();
+          if (!d.url) return;
+          const item = document.createElement('div');
+          item.className = 'galeri-item';
+          item.setAttribute('onclick', 'openLightbox(this)');
+          // Item pertama lebih besar (grid span)
+          if (idx === 0) item.style.cssText = '';
+          const caption = d.caption || d.nama || 'Foto Sagatama';
+          item.innerHTML = `
+            <img src="${d.url}" alt="${caption}" data-caption="${caption}" loading="lazy"
+                 onerror="this.src='https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?q=80&w=800&auto=format&fit=crop'">
+            <div class="galeri-overlay"><span><i class="fas fa-search-plus"></i> &nbsp;${caption}</span></div>
+          `;
+          grid.appendChild(item);
+        });
+      })
+      .catch(e => console.warn('[Galeri] Gagal memuat:', e));
+  }
+
   // Jalankan loadPublicContent segera setelah Firebase siap
   waitFirebase(function() {
     loadPublicContent();
+    loadGaleriPublic();
     // Re-load setiap 5 menit untuk konten terbaru
     setInterval(loadPublicContent, 300000);
+    setInterval(loadGaleriPublic, 300000);
   });
 
   // Jalankan patch setelah CMS v2 siap
