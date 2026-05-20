@@ -5562,5 +5562,928 @@ setInterval(fetchPiPrice, 300000);
     });
 })();
 </script>
+
+<!-- ============================================================
+     CMS SAGATAMA — Sistem Manajemen Konten Inline v2.0
+     Admin: login via Pi Network, Google, atau Email
+     Semua konten tersimpan ke Firebase Firestore
+     ============================================================ -->
+<script>
+/**
+ * CMS SAGATAMA — Sistem Manajemen Konten Inline
+ * Versi: 2.0 | Terintegrasi Firebase portal-sagatama
+ *
+ * Cara pakai:
+ * 1. Klik tombol 🛡️ di pojok kiri bawah
+ * 2. Login dengan email admin, Google, atau Pi Network
+ * 3. Klik "Aktifkan Mode Edit" → klik konten apapun di halaman
+ * 4. Edit teks → Terapkan → Simpan Semua
+ * Atau gunakan panel kanan untuk mengelola section spesifik.
+ *
+ * Daftarkan admin baru:
+ * Firestore → cms_admins → {uid} → { role: "admin", email: "..." }
+ */
+
+(function initCMSSagatama() {
+  'use strict';
+
+  const CMS_CONFIG = {
+    adminEmails: ['admin@sagatama.id','asni@sagatama.id','dev@sagatama.id'],
+    adminCollection: 'cms_admins',
+    contentCollection: 'cms_content',
+    version: '2.0'
+  };
+
+  const CMS = { isAdmin:false, user:null, editMode:false, activeEditor:null, pendingChanges:{}, db:null, auth:null };
+
+  function waitForFirebase(cb, tries=0) {
+    if (window.db && window.fbAuth && window.firebase?.firestore) {
+      CMS.db = window.db; CMS.auth = window.fbAuth; cb();
+    } else if (tries < 80) { setTimeout(()=>waitForFirebase(cb,tries+1),100); }
+    else console.warn('[CMS] Firebase tidak tersedia');
+  }
+
+  /* ── CSS ── */
+  function injectCSS(){
+    const s=document.createElement('style');
+    s.id='cms-styles';
+    s.textContent=`
+    :root{--cms-accent:#d4a017;--cms-dark:#070d1a;--cms-glass:rgba(7,13,26,0.96);--cms-border:rgba(212,160,23,0.3);--cms-z:99990;}
+    #cms-fab{position:fixed;bottom:28px;left:28px;z-index:var(--cms-z);display:flex;flex-direction:column;align-items:flex-start;gap:10px;}
+    @media(max-width:768px){#cms-fab{bottom:80px;left:14px;}}
+    .cms-fab-btn{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#0f3460,#16427a);border:2px solid rgba(212,160,23,.45);color:white;font-size:1.1em;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 24px rgba(15,52,96,.5);transition:all .3s;position:relative;}
+    .cms-fab-btn:hover{transform:scale(1.1);border-color:var(--cms-accent);box-shadow:0 8px 32px rgba(212,160,23,.4);}
+    .cms-fab-btn.active-admin{background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;border-color:#d4a017;}
+    .cms-fab-label{position:absolute;left:60px;background:var(--cms-dark);color:white;font-size:.7em;font-weight:700;padding:5px 10px;border-radius:6px;white-space:nowrap;border:1px solid var(--cms-border);pointer-events:none;opacity:0;transform:translateX(-4px);transition:all .2s;font-family:'DM Sans',sans-serif;letter-spacing:.3px;}
+    .cms-fab-btn:hover .cms-fab-label{opacity:1;transform:translateX(0);}
+    .cms-fab-dot{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#10b981;border:2px solid var(--cms-dark);animation:cms-blink 1.5s ease-in-out infinite;}
+    @keyframes cms-blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+    #cms-edit-bar{position:fixed;top:0;left:0;right:0;height:44px;background:linear-gradient(135deg,rgba(212,160,23,.97),rgba(240,200,66,.97));backdrop-filter:blur(10px);z-index:calc(var(--cms-z)+10);display:none;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:0 4px 20px rgba(212,160,23,.4);font-family:'DM Sans',sans-serif;}
+    #cms-edit-bar.show{display:flex;}
+    .cms-bar-left{display:flex;align-items:center;gap:10px;color:#070d1a;font-weight:700;font-size:.8em;}
+    .cms-bar-right{display:flex;align-items:center;gap:8px;}
+    .cms-bar-btn{padding:6px 14px;border-radius:7px;border:none;font-family:'DM Sans',sans-serif;font-size:.77em;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
+    .cms-bar-btn.save{background:#070d1a;color:#d4a017;border:1px solid #d4a017;}
+    .cms-bar-btn.save:hover{background:#0f3460;}
+    .cms-bar-btn.cancel{background:rgba(0,0,0,.15);color:#070d1a;border:1px solid rgba(0,0,0,.2);}
+    .cms-bar-btn.cancel:hover{background:rgba(0,0,0,.25);}
+    .cms-changes-badge{background:#ef4444;color:white;border-radius:50%;width:20px;height:20px;font-size:.67em;font-weight:800;display:none;align-items:center;justify-content:center;}
+    .cms-changes-badge.show{display:flex;}
+
+    [data-cms-field]{position:relative;transition:outline .15s;}
+    body.cms-editing [data-cms-field]:hover{outline:2px dashed rgba(212,160,23,.7);outline-offset:4px;cursor:pointer !important;}
+    body.cms-editing [data-cms-field]:hover::before{content:'✏️ Klik edit';position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:#d4a017;color:#070d1a;font-size:.62em;font-weight:700;padding:3px 8px;border-radius:4px;white-space:nowrap;z-index:9999;pointer-events:none;font-family:'DM Sans',sans-serif;}
+    [data-cms-field].cms-changed{background:rgba(212,160,23,.08)!important;outline:2px solid rgba(212,160,23,.5)!important;outline-offset:4px;}
+
+    #cms-inline-editor{position:fixed;z-index:calc(var(--cms-z)+20);background:var(--cms-glass);border:1px solid var(--cms-border);border-radius:16px;padding:20px;width:420px;max-width:calc(100vw - 32px);box-shadow:0 24px 70px rgba(0,0,0,.65);backdrop-filter:blur(20px);font-family:'DM Sans',sans-serif;display:none;animation:cms-pop .2s ease;}
+    @keyframes cms-pop{from{opacity:0;transform:scale(.92) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .cms-ie-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .cms-ie-title{color:var(--cms-accent);font-weight:800;font-size:.82em;letter-spacing:.5px;display:flex;align-items:center;gap:6px;}
+    .cms-ie-close{background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:.82em;transition:.2s;display:flex;align-items:center;justify-content:center;}
+    .cms-ie-close:hover{background:rgba(239,68,68,.2);color:#fca5a5;}
+    .cms-ie-label{color:rgba(255,255,255,.4);font-size:.7em;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
+    .cms-ie-input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:white;padding:10px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.88em;outline:none;transition:border-color .2s;resize:vertical;min-height:60px;line-height:1.5;}
+    .cms-ie-input:focus{border-color:rgba(212,160,23,.5);background:rgba(212,160,23,.04);}
+    .cms-ie-actions{display:flex;gap:8px;margin-top:14px;justify-content:flex-end;}
+    .cms-ie-btn{padding:8px 18px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.8em;font-weight:700;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:6px;}
+    .cms-ie-btn.apply{background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;}
+    .cms-ie-btn.apply:hover{box-shadow:0 4px 14px rgba(212,160,23,.4);transform:translateY(-1px);}
+    .cms-ie-btn.discard{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);}
+    .cms-ie-btn.discard:hover{background:rgba(255,255,255,.12);color:white;}
+    .cms-ie-typebadge{background:rgba(212,160,23,.12);border:1px solid rgba(212,160,23,.2);color:rgba(212,160,23,.8);font-size:.62em;padding:2px 8px;border-radius:4px;font-weight:700;margin-left:6px;}
+
+    #cms-login-overlay{position:fixed;inset:0;z-index:calc(var(--cms-z)+30);background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s;}
+    #cms-login-overlay.open{opacity:1;pointer-events:all;}
+    .cms-login-modal{background:var(--cms-glass);border:1px solid var(--cms-border);border-radius:20px;width:100%;max-width:420px;padding:28px;transform:scale(.93) translateY(16px);transition:transform .35s cubic-bezier(.34,1.4,.64,1);font-family:'DM Sans',sans-serif;position:relative;}
+    #cms-login-overlay.open .cms-login-modal{transform:scale(1) translateY(0);}
+    .cms-login-head{text-align:center;margin-bottom:20px;}
+    .cms-login-icon{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#0f3460,#16427a);border:2px solid var(--cms-accent);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.4em;color:var(--cms-accent);box-shadow:0 8px 28px rgba(15,52,96,.5);}
+    .cms-login-head h3{font-family:'Cinzel',serif;font-size:1em;font-weight:900;color:var(--cms-accent);letter-spacing:1px;margin-bottom:4px;}
+    .cms-login-head p{color:rgba(255,255,255,.35);font-size:.75em;}
+    .cms-lmethod{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:white;font-family:'DM Sans',sans-serif;font-size:.85em;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .cms-lmethod:hover{background:rgba(255,255,255,.1);transform:translateY(-1px);}
+    .cms-lmethod.pi{border-color:rgba(124,58,237,.4);background:rgba(124,58,237,.1);color:#c4b5fd;}
+    .cms-lmethod.pi:hover{background:rgba(124,58,237,.2);}
+    .cms-lmethod.google{border-color:rgba(66,133,244,.4);background:rgba(66,133,244,.08);}
+    .cms-divider-line{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
+    .cms-divider-line::before,.cms-divider-line::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.1);}
+    .cms-divider-line span{color:rgba(255,255,255,.3);font-size:.72em;}
+    .cms-inp{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:white;padding:11px 14px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.85em;outline:none;margin-bottom:10px;transition:.2s;}
+    .cms-inp:focus{border-color:rgba(212,160,23,.5);background:rgba(212,160,23,.04);}
+    .cms-inp::placeholder{color:rgba(255,255,255,.2);}
+    .cms-login-submit{width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.88em;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+    .cms-login-submit:hover{box-shadow:0 6px 20px rgba(212,160,23,.4);transform:translateY(-1px);}
+    .cms-login-err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:8px 12px;color:#fca5a5;font-size:.77em;margin-bottom:10px;display:none;}
+    .cms-login-x{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:.85em;transition:.2s;}
+    .cms-login-x:hover{background:rgba(255,255,255,.12);color:white;}
+
+    #cms-panel{position:fixed;top:0;right:-440px;width:420px;max-width:100vw;height:100%;background:var(--cms-glass);border-left:1px solid var(--cms-border);z-index:calc(var(--cms-z)+5);overflow-y:auto;transition:right .35s cubic-bezier(.4,0,.2,1);font-family:'DM Sans',sans-serif;box-shadow:-10px 0 50px rgba(0,0,0,.6);}
+    #cms-panel.open{right:0;}
+    #cms-panel::-webkit-scrollbar{width:4px;}
+    #cms-panel::-webkit-scrollbar-thumb{background:rgba(212,160,23,.3);border-radius:2px;}
+    .cms-ph{padding:18px;border-bottom:1px solid rgba(212,160,23,.15);background:rgba(15,52,96,.3);position:sticky;top:0;z-index:2;backdrop-filter:blur(10px);}
+    .cms-ph-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .cms-ph-title{font-family:'Cinzel',serif;font-weight:900;color:var(--cms-accent);font-size:.88em;letter-spacing:1px;}
+    .cms-ph-x{background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:.85em;transition:.2s;}
+    .cms-ph-x:hover{background:rgba(255,255,255,.12);color:white;}
+    .cms-user-row{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;}
+    .cms-uavatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#0f3460,#16427a);border:2px solid var(--cms-accent);display:flex;align-items:center;justify-content:center;color:var(--cms-accent);font-weight:800;font-size:.88em;flex-shrink:0;}
+    .cms-uname{color:white;font-weight:700;font-size:.8em;}
+    .cms-urole{color:#10b981;font-size:.67em;font-weight:700;display:flex;align-items:center;gap:4px;margin-top:2px;}
+    .cms-pb{padding:14px;}
+    .cms-slabel{color:rgba(255,255,255,.3);font-size:.67em;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin:14px 0 7px;display:flex;align-items:center;gap:6px;}
+    .cms-sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:14px;}
+    .cms-scard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:10px;text-align:center;}
+    .cms-sv{font-family:'Playfair Display',serif;font-size:1.4em;font-weight:900;color:var(--cms-accent);display:block;}
+    .cms-sl{color:rgba(255,255,255,.3);font-size:.67em;margin-top:2px;display:block;}
+    .cms-abtn{width:100%;padding:11px 14px;border-radius:10px;border:none;font-family:'DM Sans',sans-serif;font-size:.82em;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px;margin-bottom:7px;text-align:left;}
+    .cms-abtn.pri{background:linear-gradient(135deg,rgba(212,160,23,.18),rgba(240,200,66,.08));border:1px solid rgba(212,160,23,.28);color:var(--cms-accent);}
+    .cms-abtn.pri:hover{background:rgba(212,160,23,.28);transform:translateY(-1px);}
+    .cms-abtn.pri.on{background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;}
+    .cms-abtn.red{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;}
+    .cms-abtn.red:hover{background:rgba(239,68,68,.15);}
+    .cms-abtn.neu{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.55);}
+    .cms-abtn.neu:hover{background:rgba(255,255,255,.09);color:white;}
+    .cms-abtn-desc{font-weight:400;font-size:.79em;color:rgba(255,255,255,.3);margin-top:1px;display:block;}
+    .cms-abtn.pri .cms-abtn-desc{color:rgba(212,160,23,.55);}
+    .cms-abtn.pri.on .cms-abtn-desc{color:rgba(7,13,26,.55);}
+    .cms-ctgl{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:11px 13px;color:rgba(255,255,255,.6);font-family:'DM Sans',sans-serif;font-size:.79em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;transition:.2s;}
+    .cms-ctgl:hover{background:rgba(255,255,255,.07);color:white;}
+    .cms-ctgl i.arr{transition:transform .3s;}
+    .cms-ctgl.open i.arr{transform:rotate(180deg);}
+    .cms-ctgl .ci{color:var(--cms-accent);margin-right:7px;}
+    .cms-cpanel{overflow:hidden;max-height:0;transition:max-height .3s ease;}
+    .cms-cpanel.open{max-height:3000px;}
+    .cms-finp{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:white;padding:8px 10px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82em;outline:none;transition:.2s;margin-bottom:8px;}
+    .cms-finp:focus{border-color:rgba(212,160,23,.5);}
+    .cms-finp::placeholder{color:rgba(255,255,255,.2);}
+    .cms-flbl{color:rgba(255,255,255,.35);font-size:.67em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;display:block;}
+    .cms-frow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+    .cms-fgroup{display:flex;flex-direction:column;}
+    .cms-fsave{width:100%;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.79em;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;}
+    .cms-fsave:hover{box-shadow:0 4px 14px rgba(212,160,23,.4);transform:translateY(-1px);}
+    .cms-wcrd{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;margin-bottom:7px;}
+    .cms-wt{color:white;font-size:.8em;font-weight:700;margin-bottom:4px;}
+    .cms-wm{color:rgba(255,255,255,.3);font-size:.69em;margin-bottom:8px;}
+    .cms-mbtn{padding:5px 11px;border-radius:6px;border:none;font-family:'DM Sans',sans-serif;font-size:.7em;font-weight:700;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:4px;margin-right:5px;}
+    .cms-mbtn.e{background:rgba(212,160,23,.14);color:var(--cms-accent);border:1px solid rgba(212,160,23,.23);}
+    .cms-mbtn.e:hover{background:rgba(212,160,23,.24);}
+    .cms-mbtn.d{background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.2);}
+    .cms-mbtn.d:hover{background:rgba(239,68,68,.2);}
+    .cms-mbtn.a{background:rgba(16,185,129,.1);color:#6ee7b7;border:1px solid rgba(16,185,129,.22);margin-bottom:9px;}
+    .cms-mbtn.a:hover{background:rgba(16,185,129,.2);}
+
+    #cms-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(7,13,26,.97);border:1px solid var(--cms-border);border-radius:10px;padding:10px 20px;color:white;font-size:.82em;font-weight:600;z-index:calc(var(--cms-z)+50);opacity:0;transition:all .3s;pointer-events:none;display:flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif;white-space:nowrap;max-width:calc(100vw - 32px);}
+    #cms-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    #cms-toast.success{border-color:rgba(16,185,129,.4);}
+    #cms-toast.error{border-color:rgba(239,68,68,.4);}
+
+    #cms-wmodal{position:fixed;inset:0;z-index:calc(var(--cms-z)+40);background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px;}
+    `;
+    document.head.appendChild(s);
+  }
+
+  /* ── HTML ── */
+  function injectHTML(){
+    const d=document.createElement('div');
+    d.id='cms-root';
+    d.innerHTML=`
+    <!-- Login Modal -->
+    <div id="cms-login-overlay">
+      <div class="cms-login-modal">
+        <button class="cms-login-x" onclick="cmsUI.closeLogin()"><i class="fas fa-times"></i></button>
+        <div class="cms-login-head">
+          <div class="cms-login-icon"><i class="fas fa-shield-halved"></i></div>
+          <h3>ADMIN CMS</h3>
+          <p>Portal Sagatama — Panel Manajemen Konten</p>
+        </div>
+        <div class="cms-login-err" id="cms-lerr"></div>
+        <button class="cms-lmethod pi" id="cms-pi-btn" onclick="cmsUI.loginPi()" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#7c3aed"/><text y="68" x="50" text-anchor="middle" font-size="60" font-family="serif" fill="white">π</text></svg>
+          Masuk via Pi Network
+        </button>
+        <button class="cms-lmethod google" onclick="cmsUI.loginGoogle()">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+          Masuk via Google
+        </button>
+        <div class="cms-divider-line"><span>atau email admin</span></div>
+        <input class="cms-inp" type="email" id="cms-em" placeholder="Email admin">
+        <input class="cms-inp" type="password" id="cms-pw" placeholder="Password">
+        <button class="cms-login-submit" onclick="cmsUI.loginEmail()">
+          <i class="fas fa-lock"></i> Masuk sebagai Admin
+        </button>
+        <div style="text-align:center;color:rgba(255,255,255,.18);font-size:.69em;margin-top:8px;">Akses khusus pengelola Yayasan Sagatama</div>
+      </div>
+    </div>
+
+    <!-- Edit Bar -->
+    <div id="cms-edit-bar">
+      <div class="cms-bar-left">
+        <i class="fas fa-pen-ruler"></i>
+        <span>MODE EDIT AKTIF</span>
+        <div class="cms-changes-badge" id="cms-cbadge">0</div>
+      </div>
+      <div class="cms-bar-right">
+        <button class="cms-bar-btn cancel" onclick="cmsUI.cancelEdit()"><i class="fas fa-times"></i> Batal</button>
+        <button class="cms-bar-btn save" id="cms-saveall-btn" onclick="cmsUI.saveAll()"><i class="fas fa-cloud-upload-alt"></i> Simpan Semua</button>
+      </div>
+    </div>
+
+    <!-- Inline Editor -->
+    <div id="cms-inline-editor">
+      <div class="cms-ie-header">
+        <div class="cms-ie-title"><i class="fas fa-pen"></i> Edit Konten <span class="cms-ie-typebadge" id="cms-ietype"></span></div>
+        <button class="cms-ie-close" onclick="cmsUI.closeIE()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="cms-ie-label" id="cms-ielbl">Teks</div>
+      <textarea class="cms-ie-input" id="cms-ieinput" rows="4"></textarea>
+      <div class="cms-ie-actions">
+        <button class="cms-ie-btn discard" onclick="cmsUI.closeIE()"><i class="fas fa-times"></i> Tutup</button>
+        <button class="cms-ie-btn apply" onclick="cmsUI.applyIE()"><i class="fas fa-check"></i> Terapkan</button>
+      </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="cms-panel">
+      <div class="cms-ph">
+        <div class="cms-ph-top">
+          <div class="cms-ph-title"><i class="fas fa-layer-group" style="margin-right:6px;"></i>CMS SAGATAMA</div>
+          <button class="cms-ph-x" onclick="cmsUI.closePanel()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="cms-user-row">
+          <div class="cms-uavatar" id="cmsAvatar">A</div>
+          <div>
+            <div class="cms-uname" id="cmsUname">Admin</div>
+            <div class="cms-urole"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;"></span> Admin Terautentikasi</div>
+          </div>
+        </div>
+      </div>
+      <div class="cms-pb">
+
+        <!-- Stats -->
+        <div class="cms-slabel"><i class="fas fa-chart-bar"></i> Statistik Live</div>
+        <div class="cms-sgrid">
+          <div class="cms-scard"><span class="cms-sv live-visitor-count">—</span><span class="cms-sl">Pengunjung</span></div>
+          <div class="cms-scard"><span class="cms-sv live-santri-count">—</span><span class="cms-sl">Santri</span></div>
+          <div class="cms-scard"><span class="cms-sv live-donasi-total" style="font-size:.75em;">—</span><span class="cms-sl">Donasi</span></div>
+          <div class="cms-scard"><span class="cms-sv" id="cms-ccnt">0</span><span class="cms-sl">Konten Tersimpan</span></div>
+        </div>
+
+        <!-- Edit Mode -->
+        <div class="cms-slabel"><i class="fas fa-edit"></i> Mode Edit Inline</div>
+        <button class="cms-abtn pri" id="cms-edittoggle" onclick="cmsUI.toggleEdit()">
+          <i class="fas fa-pen-ruler"></i>
+          <div><div>Aktifkan Mode Edit</div><span class="cms-abtn-desc">Klik teks di halaman untuk edit langsung</span></div>
+        </button>
+
+        <!-- Hero -->
+        <div class="cms-slabel"><i class="fas fa-file-alt"></i> Kelola Konten</div>
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('hero')"><span><i class="ci fas fa-home"></i>Hero & Beranda</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-hero">
+          <div style="padding:0 4px 12px;">
+            <label class="cms-flbl">Judul Hero</label>
+            <input class="cms-finp" id="cf-hero-title" placeholder="Nama Yayasan">
+            <label class="cms-flbl">Subtitle</label>
+            <textarea class="cms-finp" id="cf-hero-sub" rows="2" placeholder="Deskripsi..."></textarea>
+            <label class="cms-flbl">Eyebrow (teks kecil atas)</label>
+            <input class="cms-finp" id="cf-hero-eye" placeholder="Firebase Project...">
+            <button class="cms-fsave" onclick="cmsUI.saveHero()"><i class="fas fa-save"></i> Simpan Hero</button>
+          </div>
+        </div>
+
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('quote')"><span><i class="ci fas fa-quote-left"></i>Wasiat / Quote</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-quote">
+          <div style="padding:0 4px 12px;">
+            <label class="cms-flbl">Teks Wasiat</label>
+            <textarea class="cms-finp" id="cf-qt" rows="3" placeholder="Isi wasiat..."></textarea>
+            <label class="cms-flbl">Penulis</label>
+            <input class="cms-finp" id="cf-qa" placeholder="Nama pimpinan">
+            <button class="cms-fsave" onclick="cmsUI.saveQuote()"><i class="fas fa-save"></i> Simpan Quote</button>
+          </div>
+        </div>
+
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('stats')"><span><i class="ci fas fa-chart-pie"></i>Statistik & Data Santri</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-stats">
+          <div style="padding:0 4px 12px;">
+            <div class="cms-frow">
+              <div class="cms-fgroup"><label class="cms-flbl">Santri Aktif (tampilan)</label><input class="cms-finp" id="cf-sdisp" type="number" placeholder="487"></div>
+              <div class="cms-fgroup"><label class="cms-flbl">Santri (DB Firebase)</label><input class="cms-finp" id="cf-sdb" type="number" placeholder="487"></div>
+            </div>
+            <div class="cms-frow">
+              <div class="cms-fgroup"><label class="cms-flbl">Total Donasi (Rp)</label><input class="cms-finp" id="cf-donasi" type="number" placeholder="0"></div>
+              <div class="cms-fgroup"><label class="cms-flbl">Target Donasi (Rp)</label><input class="cms-finp" id="cf-target" type="number" placeholder="100000000"></div>
+            </div>
+            <button class="cms-fsave" onclick="cmsUI.saveStats()"><i class="fas fa-save"></i> Simpan Statistik</button>
+          </div>
+        </div>
+
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('prog')"><span><i class="ci fas fa-building"></i>Progress Pembangunan</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-prog">
+          <div style="padding:0 4px 12px;">
+            <div class="cms-frow">
+              <div class="cms-fgroup"><label class="cms-flbl">Masjid (%)</label><input class="cms-finp" id="cf-pm" type="number" min="0" max="100" placeholder="65"></div>
+              <div class="cms-fgroup"><label class="cms-flbl">Kelas (%)</label><input class="cms-finp" id="cf-pk" type="number" min="0" max="100" placeholder="80"></div>
+            </div>
+            <div class="cms-frow">
+              <div class="cms-fgroup"><label class="cms-flbl">Asrama (%)</label><input class="cms-finp" id="cf-pa" type="number" min="0" max="100" placeholder="55"></div>
+              <div class="cms-fgroup"><label class="cms-flbl">AI Lab (%)</label><input class="cms-finp" id="cf-pl" type="number" min="0" max="100" placeholder="40"></div>
+            </div>
+            <button class="cms-fsave" onclick="cmsUI.saveProgress()"><i class="fas fa-save"></i> Simpan Progress</button>
+          </div>
+        </div>
+
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('warta'); cmsUI.loadWarta()"><span><i class="ci fas fa-newspaper"></i>Berita & Warta</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-warta">
+          <div style="padding:0 4px 12px;">
+            <button class="cms-mbtn a" onclick="cmsUI.addWarta()"><i class="fas fa-plus"></i> Tambah Berita Baru</button>
+            <div id="cms-wlist"><div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:10px 0;">Klik panah di atas untuk memuat...</div></div>
+          </div>
+        </div>
+
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('marquee')"><span><i class="ci fas fa-scroll"></i>Teks Berjalan</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-marquee">
+          <div style="padding:0 4px 12px;">
+            <label class="cms-flbl">Teks (pisahkan dengan |)</label>
+            <textarea class="cms-finp" id="cf-mq" rows="4" placeholder="Teks 1 | Teks 2 | ..."></textarea>
+            <button class="cms-fsave" onclick="cmsUI.saveMarquee()"><i class="fas fa-save"></i> Simpan Marquee</button>
+          </div>
+        </div>
+
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('vm')"><span><i class="ci fas fa-star"></i>Visi & Misi</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-vm">
+          <div style="padding:0 4px 12px;">
+            <label class="cms-flbl">Visi</label>
+            <textarea class="cms-finp" id="cf-visi" rows="3" placeholder="Teks visi..."></textarea>
+            <label class="cms-flbl">Misi</label>
+            <textarea class="cms-finp" id="cf-misi" rows="4" placeholder="Teks misi..."></textarea>
+            <button class="cms-fsave" onclick="cmsUI.saveVisiMisi()"><i class="fas fa-save"></i> Simpan Visi & Misi</button>
+          </div>
+        </div>
+
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('pimpinan')"><span><i class="ci fas fa-user-tie"></i>Kata Pengantar</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-pimpinan">
+          <div style="padding:0 4px 12px;">
+            <label class="cms-flbl">Nama Pimpinan</label>
+            <input class="cms-finp" id="cf-pnama" placeholder="Hj. ASNI SITORUS...">
+            <label class="cms-flbl">Jabatan</label>
+            <input class="cms-finp" id="cf-pjabatan" placeholder="Pimpinan Pusat & Pendiri">
+            <label class="cms-flbl">Paragraf 1</label>
+            <textarea class="cms-finp" id="cf-pp1" rows="3" placeholder="Isi paragraf 1..."></textarea>
+            <label class="cms-flbl">Paragraf 2</label>
+            <textarea class="cms-finp" id="cf-pp2" rows="3" placeholder="Isi paragraf 2..."></textarea>
+            <button class="cms-fsave" onclick="cmsUI.savePengantar()"><i class="fas fa-save"></i> Simpan Pengantar</button>
+          </div>
+        </div>
+
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('wasiat')"><span><i class="ci fas fa-mosque"></i>Wasiat Pimpinan</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-wasiat">
+          <div style="padding:0 4px 12px;">
+            <label class="cms-flbl">Teks Wasiat</label>
+            <textarea class="cms-finp" id="cf-was" rows="4" placeholder="Isi wasiat pimpinan terkini..."></textarea>
+            <button class="cms-fsave" onclick="cmsUI.saveWasiat()"><i class="fas fa-save"></i> Simpan Wasiat</button>
+          </div>
+        </div>
+
+        <!-- Tambah Admin -->
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('addadmin')"><span><i class="ci fas fa-user-shield"></i>Tambah Admin</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-addadmin">
+          <div style="padding:0 4px 12px;">
+            <label class="cms-flbl">Email Admin Baru</label>
+            <input class="cms-finp" id="cf-addemail" placeholder="email@sagatama.id">
+            <label class="cms-flbl">Pi Username (opsional)</label>
+            <input class="cms-finp" id="cf-addpi" placeholder="@username_pi">
+            <button class="cms-fsave" onclick="cmsUI.addAdmin()"><i class="fas fa-user-plus"></i> Daftarkan Admin</button>
+          </div>
+        </div>
+
+        <div class="cms-slabel"><i class="fas fa-cog"></i> Akun</div>
+        <button class="cms-abtn red" onclick="cmsUI.logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          <div><div>Keluar dari CMS</div><span class="cms-abtn-desc">Logout dari akun admin</span></div>
+        </button>
+        <div style="text-align:center;padding:16px 0 8px;color:rgba(255,255,255,.15);font-size:.62em;letter-spacing:1px;">CMS SAGATAMA v2.0 · Firebase Firestore</div>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <div id="cms-fab">
+      <button class="cms-fab-btn" id="cms-fabmain" onclick="cmsUI.fabClick()">
+        <i class="fas fa-shield-halved" id="cms-fabicon"></i>
+        <span class="cms-fab-label" id="cms-fablbl">Masuk sebagai Admin</span>
+      </button>
+    </div>
+
+    <!-- Toast -->
+    <div id="cms-toast"><i class="fas fa-check-circle" id="cms-ticon"></i><span id="cms-tmsg"></span></div>
+
+    <!-- Warta Modal -->
+    <div id="cms-wmodal">
+      <div style="background:#070d1a;border:1px solid rgba(212,160,23,.3);border-radius:20px;width:100%;max-width:520px;padding:24px;font-family:'DM Sans',sans-serif;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="color:#d4a017;font-weight:800;font-size:.9em;"><i class="fas fa-newspaper" style="margin-right:8px;"></i><span id="cwm-title">Tambah Berita</span></div>
+          <button onclick="cmsUI.closeWM()" style="background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <input class="cms-finp" id="cwm-judul" placeholder="Judul berita..." style="width:100%;">
+        <textarea class="cms-finp" id="cwm-isi" rows="5" placeholder="Isi berita lengkap..." style="width:100%;resize:vertical;"></textarea>
+        <input class="cms-finp" id="cwm-img" placeholder="URL gambar (opsional)" style="width:100%;">
+        <input type="hidden" id="cwm-eid">
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+          <button onclick="cmsUI.closeWM()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
+          <button onclick="cmsUI.saveWarta()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-save"></i> Simpan Berita</button>
+        </div>
+      </div>
+    </div>
+    `;
+    document.body.appendChild(d);
+  }
+
+  /* ── Tag editable elements ── */
+  function tagFields(){
+    const map=[
+      ['.hero-title','hero_title','Judul Hero','html'],
+      ['.hero-subtitle','hero_subtitle','Subtitle Hero','text'],
+      ['.hero-eyebrow','hero_eyebrow','Badge Eyebrow','text'],
+      ['.quote-text','quote_text','Teks Wasiat','text'],
+      ['.quote-author','quote_author','Penulis Wasiat','text'],
+      ['.quote-label','quote_label','Label Quote','text'],
+      ['.pengantar-text h3','pengantar_h','Heading Pengantar','text'],
+      ['.pengantar-text p:first-of-type','pengantar_p1','Paragraf Pengantar 1','text'],
+      ['.wasiat-highlight p','wasiat_text','Teks Wasiat Pimpinan','text'],
+      ['.identity-text h2','identity_title','Judul Identitas 513','text'],
+      ['.identity-text p','identity_desc','Deskripsi Identitas','text'],
+      ['#psb .section-title','psb_title','Judul PSB','text'],
+      ['#psb .section-desc','psb_desc','Deskripsi PSB','text'],
+      ['.pilar-3-card:first-child .pilar-3-title','p1_title','Judul Pilar 1','text'],
+      ['.pilar-3-card:first-child .pilar-3-desc','p1_desc','Desc Pilar 1','text'],
+      ['.pilar-3-card:nth-child(2) .pilar-3-title','p2_title','Judul Pilar 2','text'],
+      ['.pilar-3-card:nth-child(2) .pilar-3-desc','p2_desc','Desc Pilar 2','text'],
+      ['.pilar-3-card:last-child .pilar-3-title','p3_title','Judul Pilar 3','text'],
+      ['.pilar-3-card:last-child .pilar-3-desc','p3_desc','Desc Pilar 3','text'],
+    ];
+    map.forEach(([sel,field,lbl,type])=>{
+      try{
+        const el=document.querySelector(sel);
+        if(el&&!el.hasAttribute('data-cms-field')){
+          el.setAttribute('data-cms-field',field);
+          el.setAttribute('data-cms-label',lbl);
+          el.setAttribute('data-cms-type',type||'text');
+        }
+      }catch(e){}
+    });
+    document.querySelectorAll('[data-cms-field]').forEach(el=>{
+      if(!el._cmsL){el._cmsL=true;el.addEventListener('click',function(e){if(!CMS.editMode)return;e.stopPropagation();openIE(this);});}
+    });
+  }
+
+  function openIE(el){
+    CMS.activeEditor=el;
+    const field=el.getAttribute('data-cms-field');
+    const lbl=el.getAttribute('data-cms-label')||field;
+    const type=el.getAttribute('data-cms-type')||'text';
+    const cur=el.innerText||el.textContent||'';
+    const ed=document.getElementById('cms-inline-editor');
+    const inp=document.getElementById('cms-ieinput');
+    document.getElementById('cms-ielbl').textContent=lbl;
+    document.getElementById('cms-ietype').textContent=type.toUpperCase();
+    inp.value=cur.trim();
+    inp.rows=cur.length>100?6:3;
+    const rect=el.getBoundingClientRect();
+    const editBarH=document.getElementById('cms-edit-bar').classList.contains('show')?44:0;
+    let top=rect.bottom+window.scrollY+8;
+    let left=Math.max(16,rect.left);
+    if(left+430>window.innerWidth-16)left=window.innerWidth-446;
+    if(top+250>window.scrollY+window.innerHeight)top=rect.top+window.scrollY-260;
+    top=Math.max(window.scrollY+editBarH+16,top);
+    ed.style.top=top+'px';ed.style.left=left+'px';ed.style.display='block';
+    setTimeout(()=>inp.focus(),80);
+  }
+
+  async function checkAdmin(user){
+    if(!user)return false;
+    if(CMS_CONFIG.adminEmails.includes(user.email))return true;
+    try{
+      const d=await CMS.db.collection(CMS_CONFIG.adminCollection).doc(user.uid).get();
+      if(d.exists&&d.data()?.role==='admin')return true;
+      const q=await CMS.db.collection(CMS_CONFIG.adminCollection).where('email','==',user.email).limit(1).get();
+      if(!q.empty)return true;
+    }catch(e){}
+    return false;
+  }
+
+  async function loadContent(){
+    if(!CMS.db)return;
+    try{
+      const s=await CMS.db.collection(CMS_CONFIG.contentCollection).get();
+      s.forEach(doc=>{
+        const el=document.querySelector('[data-cms-field="'+doc.id+'"]');
+        if(el&&doc.data().value){
+          if(el.getAttribute('data-cms-type')==='html')el.innerHTML=doc.data().value;
+          else el.textContent=doc.data().value;
+        }
+      });
+      const c=document.getElementById('cms-ccnt');
+      if(c)c.textContent=s.size;
+    }catch(e){console.warn('[CMS] load:',e);}
+  }
+
+  /* ── cmsUI ── */
+  window.cmsUI={
+    openLogin(){
+      document.getElementById('cms-login-overlay').classList.add('open');
+      if(window.Pi||navigator.userAgent.includes('PiBrowser'))document.getElementById('cms-pi-btn').style.display='flex';
+    },
+    closeLogin(){document.getElementById('cms-login-overlay').classList.remove('open');},
+
+    async loginEmail(){
+      const em=document.getElementById('cms-em').value.trim();
+      const pw=document.getElementById('cms-pw').value;
+      const err=document.getElementById('cms-lerr');err.style.display='none';
+      if(!em||!pw){err.textContent='Email dan password harus diisi.';err.style.display='block';return;}
+      try{
+        const r=await CMS.auth.signInWithEmailAndPassword(em,pw);
+        const ok=await checkAdmin(r.user);
+        if(!ok){await CMS.auth.signOut();err.textContent='Akun ini tidak memiliki akses admin CMS.';err.style.display='block';return;}
+        this._afterLogin(r.user);
+      }catch(e){err.textContent=e.message.replace('Firebase: ','');err.style.display='block';}
+    },
+
+    async loginGoogle(){
+      const err=document.getElementById('cms-lerr');err.style.display='none';
+      try{
+        const p=new firebase.auth.GoogleAuthProvider();
+        const r=await CMS.auth.signInWithPopup(p);
+        const ok=await checkAdmin(r.user);
+        if(!ok){await CMS.auth.signOut();err.textContent='Akun Google ini tidak terdaftar sebagai admin.';err.style.display='block';return;}
+        this._afterLogin(r.user);
+      }catch(e){err.textContent=e.message.replace('Firebase: ','');err.style.display='block';}
+    },
+
+    async loginPi(){
+      const err=document.getElementById('cms-lerr');
+      try{
+        if(!window.Pi)throw new Error('Pi SDK tidak tersedia');
+        const auth=await Pi.authenticate(['username','payments'],()=>{});
+        if(!auth?.user?.username)throw new Error('Pi auth gagal');
+        const q=await CMS.db.collection(CMS_CONFIG.adminCollection).where('piUsername','==',auth.user.username).limit(1).get();
+        if(q.empty){err.textContent='Pi username Anda tidak terdaftar sebagai admin.';err.style.display='block';return;}
+        CMS.user={displayName:auth.user.username,email:'pi:'+auth.user.username,uid:'pi_'+auth.user.uid};
+        CMS.isAdmin=true;this._doAfterLogin();
+      }catch(e){err.textContent=e.message;err.style.display='block';}
+    },
+
+    _afterLogin(user){CMS.user=user;CMS.isAdmin=true;this._doAfterLogin();},
+    _doAfterLogin(){
+      this.closeLogin();this._updateFAB();this._updatePanel();
+      this.toast('✅ Login berhasil! Selamat datang, Admin.','success');
+      loadContent();this._loadPanelData();
+    },
+
+    _updateFAB(){
+      const fab=document.getElementById('cms-fabmain');
+      const ic=document.getElementById('cms-fabicon');
+      const lb=document.getElementById('cms-fablbl');
+      const hasDot=fab.querySelector('.cms-fab-dot');
+      if(CMS.isAdmin){
+        ic.className='fas fa-layer-group';lb.textContent='Panel Admin';
+        if(!hasDot){const d=document.createElement('div');d.className='cms-fab-dot';fab.appendChild(d);}
+        fab.classList.add('active-admin');
+      }else{
+        ic.className='fas fa-shield-halved';lb.textContent='Masuk sebagai Admin';
+        if(hasDot)hasDot.remove();fab.classList.remove('active-admin');
+      }
+    },
+
+    _updatePanel(){
+      const u=CMS.user;if(!u)return;
+      const n=u.displayName||u.email||'Admin';
+      const av=document.getElementById('cmsAvatar');
+      const un=document.getElementById('cmsUname');
+      if(av)av.textContent=(n[0]||'A').toUpperCase();
+      if(un)un.textContent=n;
+    },
+
+    fabClick(){if(!CMS.isAdmin)this.openLogin();else this.openPanel();},
+    openPanel(){document.getElementById('cms-panel').classList.add('open');this._loadPanelData();},
+    closePanel(){document.getElementById('cms-panel').classList.remove('open');},
+
+    toggleEdit(){
+      if(!CMS.isAdmin){this.openLogin();return;}
+      CMS.editMode=!CMS.editMode;
+      const bar=document.getElementById('cms-edit-bar');
+      const btn=document.getElementById('cms-edittoggle');
+      const ic=btn?.querySelector('i');
+      if(CMS.editMode){
+        document.body.classList.add('cms-editing');bar.classList.add('show');
+        btn?.classList.add('on');if(ic)ic.className='fas fa-times';
+        tagFields();this.toast('✏️ Mode edit aktif — klik konten untuk mengedit','success');
+        document.querySelector('nav').style.marginTop='44px';
+      }else{
+        document.body.classList.remove('cms-editing');bar.classList.remove('show');
+        btn?.classList.remove('on');if(ic)ic.className='fas fa-pen-ruler';
+        this.closeIE();document.querySelector('nav').style.marginTop='';
+        this.toast('Mode edit dinonaktifkan','');
+      }
+    },
+
+    cancelEdit(){
+      Object.entries(CMS.pendingChanges).forEach(([f,v])=>{
+        if(f.endsWith('_bak'))return;
+        const el=document.querySelector('[data-cms-field="'+f+'"]');
+        const orig=CMS.pendingChanges[f+'_bak'];
+        if(el&&orig)el.textContent=orig;
+        if(el)el.classList.remove('cms-changed');
+      });
+      CMS.pendingChanges={};this._badge(0);
+      if(CMS.editMode)this.toggleEdit();
+      this.closeIE();
+    },
+
+    async saveAll(){
+      const keys=Object.keys(CMS.pendingChanges).filter(k=>!k.endsWith('_bak'));
+      if(!keys.length){this.toast('Tidak ada perubahan','');return;}
+      const btn=document.getElementById('cms-saveall-btn');
+      if(btn){btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Menyimpan...';btn.disabled=true;}
+      try{
+        const batch=CMS.db.batch();
+        keys.forEach(f=>{
+          const ref=CMS.db.collection(CMS_CONFIG.contentCollection).doc(f);
+          batch.set(ref,{value:CMS.pendingChanges[f],field:f,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:CMS.user?.email||'admin'},{merge:true});
+        });
+        await batch.commit();
+        keys.forEach(f=>{const el=document.querySelector('[data-cms-field="'+f+'"]');if(el)el.classList.remove('cms-changed');});
+        const cnt=keys.length;CMS.pendingChanges={};this._badge(0);
+        this.toast('✅ '+cnt+' perubahan disimpan ke Firestore!','success');
+        const s=await CMS.db.collection(CMS_CONFIG.contentCollection).get();
+        const c=document.getElementById('cms-ccnt');if(c)c.textContent=s.size;
+      }catch(e){this.toast('❌ Gagal: '+e.message,'error');}
+      finally{if(btn){btn.innerHTML='<i class="fas fa-cloud-upload-alt"></i> Simpan Semua';btn.disabled=false;}}
+    },
+
+    applyIE(){
+      const el=CMS.activeEditor;if(!el)return;
+      const inp=document.getElementById('cms-ieinput');
+      const nv=inp.value;
+      const f=el.getAttribute('data-cms-field');
+      if(!CMS.pendingChanges[f+'_bak'])CMS.pendingChanges[f+'_bak']=el.textContent;
+      CMS.pendingChanges[f]=nv;el.textContent=nv;el.classList.add('cms-changed');
+      const cnt=Object.keys(CMS.pendingChanges).filter(k=>!k.endsWith('_bak')).length;
+      this._badge(cnt);this.closeIE();
+      this.toast('✏️ Perubahan disiapkan. Klik "Simpan Semua".','');
+    },
+
+    closeIE(){const e=document.getElementById('cms-inline-editor');if(e)e.style.display='none';CMS.activeEditor=null;},
+
+    _badge(n){
+      const b=document.getElementById('cms-cbadge');if(!b)return;
+      b.textContent=n;n>0?b.classList.add('show'):b.classList.remove('show');
+    },
+
+    ctgl(id){
+      const p=document.getElementById('cmsc-'+id);
+      const b=p?.previousElementSibling;
+      if(!p)return;
+      p.classList.toggle('open');if(b)b.classList.toggle('open');
+    },
+
+    async _save(data){
+      const batch=CMS.db.batch();
+      Object.entries(data).forEach(([k,v])=>{
+        if(!v&&v!==0)return;
+        const ref=CMS.db.collection(CMS_CONFIG.contentCollection).doc(k);
+        batch.set(ref,{value:v,field:k,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:CMS.user?.email},{merge:true});
+      });
+      await batch.commit();
+      Object.entries(data).forEach(([k,v])=>{
+        if(!v&&v!==0)return;
+        const el=document.querySelector('[data-cms-field="'+k+'"]');
+        if(el)el.textContent=v;
+      });
+    },
+
+    async saveHero(){
+      try{
+        await this._save({'hero_title':document.getElementById('cf-hero-title')?.value,'hero_subtitle':document.getElementById('cf-hero-sub')?.value,'hero_eyebrow':document.getElementById('cf-hero-eye')?.value});
+        this.toast('✅ Hero berhasil disimpan!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async saveQuote(){
+      try{
+        await this._save({'quote_text':document.getElementById('cf-qt')?.value,'quote_author':document.getElementById('cf-qa')?.value});
+        this.toast('✅ Quote berhasil disimpan!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async saveStats(){
+      if(!CMS.isAdmin)return;
+      try{
+        const sdb=parseInt(document.getElementById('cf-sdb')?.value)||0;
+        const donasi=parseInt(document.getElementById('cf-donasi')?.value)||0;
+        const target=parseInt(document.getElementById('cf-target')?.value)||100000000;
+        const sdisp=document.getElementById('cf-sdisp')?.value;
+        const ops=[];
+        if(sdb)ops.push(CMS.db.collection('siteStats').doc('santri').set({jumlah:sdb},{merge:true}));
+        ops.push(CMS.db.collection('siteStats').doc('donasi').set({total:donasi},{merge:true}));
+        ops.push(CMS.db.collection('siteStats').doc('donasiTarget').set({terkumpul:donasi,target},{merge:true}));
+        if(sdisp){const el=document.querySelector('.stat-item:nth-child(2) .counter-num');if(el){el.setAttribute('data-target',sdisp);el.textContent=sdisp;}}
+        await Promise.all(ops);
+        this.toast('✅ Statistik diperbarui!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async saveProgress(){
+      if(!CMS.isAdmin)return;
+      try{
+        const d={masjid:parseInt(document.getElementById('cf-pm')?.value)||0,kelas:parseInt(document.getElementById('cf-pk')?.value)||0,asrama:parseInt(document.getElementById('cf-pa')?.value)||0,lab:parseInt(document.getElementById('cf-pl')?.value)||0,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        await CMS.db.collection('siteStats').doc('pembangunan').set(d,{merge:true});
+        this.toast('✅ Progress pembangunan disimpan!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async saveVisiMisi(){
+      try{
+        await this._save({'visi_text':document.getElementById('cf-visi')?.value,'misi_text':document.getElementById('cf-misi')?.value});
+        this.toast('✅ Visi & Misi disimpan!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async savePengantar(){
+      try{
+        const nama=document.getElementById('cf-pnama')?.value;
+        const jab=document.getElementById('cf-pjabatan')?.value;
+        await this._save({'pimpinan_nama':nama,'pimpinan_jabatan':jab,'pengantar_p1':document.getElementById('cf-pp1')?.value,'pengantar_p2':document.getElementById('cf-pp2')?.value});
+        if(nama){const el=document.querySelector('.pengantar-box strong');if(el)el.textContent=nama;}
+        if(jab){const el=document.querySelector('.pengantar-box small');if(el)el.textContent=jab;}
+        this.toast('✅ Pengantar disimpan!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async saveWasiat(){
+      try{
+        const v=document.getElementById('cf-was')?.value;
+        if(!v){this.toast('Isi wasiat kosong','');return;}
+        await this._save({'wasiat_text':v});
+        const el=document.querySelector('.wasiat-highlight p');if(el)el.textContent=v;
+        this.toast('✅ Wasiat disimpan!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async saveMarquee(){
+      if(!CMS.isAdmin)return;
+      const text=document.getElementById('cf-mq')?.value;
+      if(!text){this.toast('Isi teks marquee','');return;}
+      try{
+        await CMS.db.collection(CMS_CONFIG.contentCollection).doc('marquee_text').set({value:text,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+        const mq=document.querySelector('.marquee-inner marquee');
+        if(mq){const items=text.split('|').map(t=>t.trim()).filter(Boolean);mq.innerHTML=items.map(t=>`&nbsp;&nbsp;⬡ ${t}&nbsp;&nbsp;`).join('|');}
+        this.toast('✅ Marquee disimpan!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async loadWarta(){
+      if(!CMS.isAdmin||!CMS.db)return;
+      const el=document.getElementById('cms-wlist');if(!el)return;
+      el.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:.74em;text-align:center;padding:8px;">Memuat...</div>';
+      try{
+        const snap=await CMS.db.collection('warta').orderBy('tanggal','desc').limit(10).get();
+        if(snap.empty){el.innerHTML='<div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:12px;">Belum ada berita.</div>';return;}
+        el.innerHTML='';
+        snap.forEach(doc=>{
+          const d=doc.data();
+          const tgl=d.tanggal?.toDate?d.tanggal.toDate().toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'—';
+          const c=document.createElement('div');c.className='cms-wcrd';
+          c.innerHTML=`<div class="cms-wt">${d.judul||'(tanpa judul)'}</div><div class="cms-wm"><i class="fas fa-calendar" style="margin-right:4px;"></i>${tgl}</div><div><button class="cms-mbtn e" onclick="cmsUI.editWarta('${doc.id}',${JSON.stringify(d).replace(/'/g,"\\'")},'${tgl}')"><i class="fas fa-pen"></i> Edit</button><button class="cms-mbtn d" onclick="cmsUI.deleteWarta('${doc.id}')"><i class="fas fa-trash"></i> Hapus</button></div>`;
+          el.appendChild(c);
+        });
+      }catch(e){el.innerHTML='<div style="color:#fca5a5;font-size:.74em;padding:8px;">Error: '+e.message+'</div>';}
+    },
+
+    addWarta(){
+      document.getElementById('cwm-title').textContent='Tambah Berita Baru';
+      ['cwm-judul','cwm-isi','cwm-img','cwm-eid'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      document.getElementById('cms-wmodal').style.display='flex';
+    },
+
+    editWarta(id,data){
+      document.getElementById('cwm-title').textContent='Edit Berita';
+      document.getElementById('cwm-judul').value=data.judul||'';
+      document.getElementById('cwm-isi').value=data.isi||'';
+      document.getElementById('cwm-img').value=data.img||'';
+      document.getElementById('cwm-eid').value=id;
+      document.getElementById('cms-wmodal').style.display='flex';
+    },
+
+    closeWM(){document.getElementById('cms-wmodal').style.display='none';},
+
+    async saveWarta(){
+      if(!CMS.isAdmin)return;
+      const judul=document.getElementById('cwm-judul').value.trim();
+      const isi=document.getElementById('cwm-isi').value.trim();
+      const img=document.getElementById('cwm-img').value.trim();
+      const eid=document.getElementById('cwm-eid').value;
+      if(!judul){this.toast('Judul berita harus diisi','');return;}
+      const data={judul,isi,img,tanggal:firebase.firestore.FieldValue.serverTimestamp(),author:CMS.user?.displayName||CMS.user?.email||'Admin'};
+      try{
+        if(eid)await CMS.db.collection('warta').doc(eid).update(data);
+        else await CMS.db.collection('warta').add(data);
+        this.closeWM();this.loadWarta();
+        this.toast('✅ Berita berhasil '+(eid?'diperbarui':'ditambahkan')+'!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async deleteWarta(id){
+      if(!CMS.isAdmin)return;
+      if(!confirm('Yakin hapus berita ini?'))return;
+      try{await CMS.db.collection('warta').doc(id).delete();this.loadWarta();this.toast('🗑️ Berita dihapus','');}
+      catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async addAdmin(){
+      if(!CMS.isAdmin)return;
+      const email=document.getElementById('cf-addemail')?.value.trim();
+      const pi=document.getElementById('cf-addpi')?.value.trim();
+      if(!email){this.toast('Isi email admin baru','');return;}
+      try{
+        await CMS.db.collection(CMS_CONFIG.adminCollection).add({email,piUsername:pi||null,role:'admin',addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:CMS.user?.email});
+        document.getElementById('cf-addemail').value='';
+        document.getElementById('cf-addpi').value='';
+        this.toast('✅ Admin baru berhasil ditambahkan!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    async _loadPanelData(){
+      if(!CMS.isAdmin||!CMS.db)return;
+      try{
+        // Load siteStats
+        const ss=await CMS.db.collection('siteStats').doc('santri').get();
+        if(ss.exists){const v=ss.data().jumlah;['cf-sdb','cf-sdisp'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=v;});}
+        const ds=await CMS.db.collection('siteStats').doc('donasi').get();
+        if(ds.exists){const e=document.getElementById('cf-donasi');if(e)e.value=ds.data().total||0;}
+        const dt=await CMS.db.collection('siteStats').doc('donasiTarget').get();
+        if(dt.exists){const e=document.getElementById('cf-target');if(e)e.value=dt.data().target||100000000;}
+        const pb=await CMS.db.collection('siteStats').doc('pembangunan').get();
+        if(pb.exists){const d=pb.data();['masjid','kelas','asrama','lab'].forEach(k=>{const e=document.getElementById('cf-p'+k[0]);if(e&&d[k]!==undefined)e.value=d[k];});}
+        // Load CMS content
+        const fm={'hero_title':'cf-hero-title','hero_subtitle':'cf-hero-sub','hero_eyebrow':'cf-hero-eye','quote_text':'cf-qt','quote_author':'cf-qa','visi_text':'cf-visi','misi_text':'cf-misi','pimpinan_nama':'cf-pnama','pimpinan_jabatan':'cf-pjabatan','pengantar_p1':'cf-pp1','pengantar_p2':'cf-pp2','marquee_text':'cf-mq','wasiat_text':'cf-was'};
+        await Promise.all(Object.entries(fm).map(async([k,id])=>{
+          const doc=await CMS.db.collection(CMS_CONFIG.contentCollection).doc(k).get();
+          if(doc.exists){const e=document.getElementById(id);if(e)e.value=doc.data().value||'';}
+        }));
+      }catch(e){console.warn('[CMS] loadPanelData:',e);}
+    },
+
+    async logout(){
+      try{if(CMS.auth?.currentUser)await CMS.auth.signOut();}catch(e){}
+      CMS.isAdmin=false;CMS.user=null;CMS.editMode=false;CMS.pendingChanges={};
+      document.body.classList.remove('cms-editing');
+      document.getElementById('cms-edit-bar').classList.remove('show');
+      document.querySelector('nav').style.marginTop='';
+      this.closePanel();this.closeIE();this._updateFAB();
+      this.toast('Berhasil logout dari CMS Admin','');
+    },
+
+    toast(msg,type=''){
+      const t=document.getElementById('cms-toast');
+      const m=document.getElementById('cms-tmsg');
+      const ic=document.getElementById('cms-ticon');
+      if(!t||!m)return;
+      m.textContent=msg;
+      t.className='show '+(type||'');
+      ic.className=type==='success'?'fas fa-check-circle':type==='error'?'fas fa-exclamation-circle':'fas fa-info-circle';
+      clearTimeout(window._cmsToastT);
+      window._cmsToastT=setTimeout(()=>{t.className='';},3500);
+    },
+  };
+
+  /* ── Auth state ── */
+  function setupAuth(){
+    CMS.auth.onAuthStateChanged(async user=>{
+      if(user){
+        const ok=await checkAdmin(user);
+        if(ok){CMS.user=user;CMS.isAdmin=true;window.cmsUI._updateFAB();window.cmsUI._updatePanel();loadContent();}
+      }else{CMS.isAdmin=false;CMS.user=null;window.cmsUI._updateFAB();}
+    });
+  }
+
+  /* ── Outside click: close inline editor ── */
+  document.addEventListener('click',function(e){
+    const ed=document.getElementById('cms-inline-editor');
+    if(ed&&ed.style.display!=='none'&&!ed.contains(e.target)&&!e.target.closest('[data-cms-field]'))window.cmsUI.closeIE();
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){window.cmsUI.closeIE();if(CMS.editMode)window.cmsUI.cancelEdit();}
+  });
+
+  /* ── Init ── */
+  function init(){
+    injectCSS();injectHTML();tagFields();setupAuth();
+    console.info('%c🛡️ CMS Sagatama v2.0 siap | Klik tombol biru kiri bawah untuk login admin','color:#d4a017;font-weight:bold;font-size:11px;');
+  }
+
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>waitForFirebase(init));}
+  else{waitForFirebase(init);}
+})();
+</script>
 </body>
 </html>
