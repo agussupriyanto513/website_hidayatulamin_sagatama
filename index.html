@@ -374,7 +374,7 @@
             white-space: nowrap; cursor: pointer;
         }
         .dropbtn i { color: var(--accent); font-size: 0.85em; }
-        .dropdown:hover .dropbtn, .dropbtn:hover, .dropdown-content.open ~ .dropbtn, .dropdown.is-open .dropbtn { background: rgba(212,160,23,0.1); border-color: rgba(212,160,23,0.4); color: var(--white); }
+        .dropdown:hover .dropbtn, .dropbtn:hover { background: rgba(212,160,23,0.1); border-color: rgba(212,160,23,0.4); color: var(--white); }
         .dropbtn.mart { background: linear-gradient(135deg, rgba(13,148,136,0.25), rgba(13,148,136,0.1)); border-color: rgba(13,148,136,0.4); color: #5eead4; }
         .dropbtn.mart:hover { background: rgba(13,148,136,0.3); }
         .dropbtn.pilar { background: linear-gradient(135deg, rgba(212,160,23,0.2), rgba(240,200,66,0.1)); border-color: rgba(212,160,23,0.4); color: var(--accent-light); }
@@ -1662,7 +1662,7 @@
         .swm-signout button:hover { background: rgba(239,68,68,0.18); }
 
         /* Nav wallet button */
-        .nav-sgt-btn { display: flex; align-items: center; gap: 5px; background: linear-gradient(135deg,rgba(212,160,23,0.2),rgba(212,160,23,0.1)); border: 1px solid rgba(212,160,23,0.35); color: #d4a017; padding: 5px 9px; border-radius: 7px; font-family: 'DM Sans',sans-serif; font-size: 0.65em; font-weight: 700; cursor: pointer; transition: 0.25s; white-space: nowrap; letter-spacing: 0.4px; position: relative; flex-shrink: 0; }
+        .nav-sgt-btn { display: flex; align-items: center; gap: 5px; background: linear-gradient(135deg,rgba(212,160,23,0.2),rgba(212,160,23,0.1)); border: 1px solid rgba(212,160,23,0.35); color: #d4a017; padding: 5px 9px; border-radius: 7px; font-family: 'DM Sans',sans-serif; font-size: 0.63em; font-weight: 700; cursor: pointer; transition: 0.25s; white-space: nowrap; letter-spacing: 0.3px; position: relative; flex-shrink: 0; }
         .nav-sgt-btn:hover { background: rgba(212,160,23,0.28); box-shadow: 0 4px 16px rgba(212,160,23,0.25); }
         .nav-sgt-bal { font-family: 'Cinzel',serif; font-size: 0.9em; }
         .nav-sgt-dot { width: 7px; height: 7px; border-radius: 50%; background: #d4a017; animation: sgt-pulse-dot 2s ease-in-out infinite; }
@@ -2420,7 +2420,7 @@
         </a>
 
         <!-- Desktop Nav -->
-        <div class="nav-desktop" style="display: flex; gap: 2px; align-items: center; flex-shrink: 1; flex: 1; justify-content: flex-end; overflow: hidden; min-width: 0;">
+        <div class="nav-desktop" style="display:flex;gap:2px;align-items:center;flex-shrink:1;flex:1;justify-content:flex-end;overflow:hidden;min-width:0;">
 
             <!-- 3 PILAR -->
             <div class="dropdown">
@@ -2536,7 +2536,7 @@
         </button>
 
         <!-- Live Visitor Badge -->
-        <div style="display:flex;align-items:center;gap:4px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:4px 8px;white-space:nowrap;flex-shrink:0;max-width:120px;" title="Pengunjung aktif">
+        <div style="display:flex;align-items:center;gap:4px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:4px 8px;white-space:nowrap;flex-shrink:0;" title="Pengunjung aktif">
             <span style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse-green 1.5s ease-in-out infinite;flex-shrink:0;"></span>
             <span style="color:#6ee7b7;font-size:0.65em;font-weight:700;letter-spacing:0.5px;white-space:nowrap;"><span class="live-visitor-count">—</span> pengunjung</span>
         </div>
@@ -4518,55 +4518,58 @@ window.addEventListener('scroll', () => {
         if (btn) btn.classList.toggle('active');
     }
 
-    // ======= DROPDOWN MANAGER (fix hilang saat hover) =======
+    // ======= DROPDOWN MANAGER — hover + click =======
     (function() {
         let activeDropdown = null;
         let closeTimer = null;
 
-        function openDropdown(dropdown) {
+        function openDropdown(dd) {
             if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
-            if (activeDropdown && activeDropdown !== dropdown) closeNow(activeDropdown);
-            const content = dropdown.querySelector('.dropdown-content');
-            if (!content) return;
-            content.classList.add('open');
-            activeDropdown = dropdown;
+            if (activeDropdown && activeDropdown !== dd) closeNow(activeDropdown);
+            const c = dd.querySelector('.dropdown-content');
+            if (!c) return;
+            c.classList.add('open');
+            activeDropdown = dd;
         }
 
-        function scheduleClose(dropdown) {
-            closeTimer = setTimeout(() => {
-                closeNow(dropdown);
-                closeTimer = null;
-            }, 120);
+        function scheduleClose(dd) {
+            closeTimer = setTimeout(() => { closeNow(dd); closeTimer = null; }, 150);
         }
 
-        function closeNow(dropdown) {
-            const content = dropdown.querySelector('.dropdown-content');
-            if (content) content.classList.remove('open');
-            if (activeDropdown === dropdown) activeDropdown = null;
+        function closeNow(dd) {
+            const c = dd.querySelector('.dropdown-content');
+            if (c) c.classList.remove('open');
+            if (activeDropdown === dd) activeDropdown = null;
+        }
+
+        function closeAll() {
+            document.querySelectorAll('.dropdown-content.open').forEach(c => c.classList.remove('open'));
+            activeDropdown = null;
+            if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
         }
 
         document.querySelectorAll('.dropdown').forEach(dd => {
-            // Hover: buka/tutup
+            // Hover (desktop)
             dd.addEventListener('mouseenter', () => openDropdown(dd));
             dd.addEventListener('mouseleave', () => scheduleClose(dd));
 
-            // Click pada dropbtn: toggle (penting untuk touch/tablet)
+            // Click pada tombol dropbtn — toggle buka/tutup
             const btn = dd.querySelector('.dropbtn');
             if (btn) {
                 btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
                     const content = dd.querySelector('.dropdown-content');
                     if (!content) return;
                     const isOpen = content.classList.contains('open');
-                    // Tutup semua dropdown lain dulu
-                    document.querySelectorAll('.dropdown-content.open').forEach(c => c.classList.remove('open'));
-                    activeDropdown = null;
+                    closeAll();
                     if (!isOpen) {
                         openDropdown(dd);
+                        // Hentikan event agar klik di luar tetap bisa menutup
+                        e.stopPropagation();
                     }
                 });
             }
 
+            // Cegah mouseleave menutup saat kursor masuk ke dropdown-content
             const content = dd.querySelector('.dropdown-content');
             if (content) {
                 content.addEventListener('mouseenter', () => {
@@ -4576,12 +4579,9 @@ window.addEventListener('scroll', () => {
             }
         });
 
-        // Klik di luar tutup semua
+        // Klik di luar → tutup semua
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.dropdown')) {
-                document.querySelectorAll('.dropdown-content.open').forEach(c => c.classList.remove('open'));
-                activeDropdown = null;
-            }
+            if (!e.target.closest('.dropdown')) closeAll();
         });
     })();
 
@@ -5631,7 +5631,12 @@ setInterval(fetchPiPrice, 300000);
     s.textContent=`
     :root{--cms-accent:#d4a017;--cms-dark:#070d1a;--cms-glass:rgba(7,13,26,0.96);--cms-border:rgba(212,160,23,0.3);--cms-z:99990;}
     #cms-fab{position:fixed;bottom:90px;left:28px;z-index:var(--cms-z);display:flex;flex-direction:column;align-items:flex-start;gap:10px;}
-    @media(max-width:768px){#cms-fab{bottom:140px;left:14px;}}
+    @media(max-width:768px){#cms-fab{bottom:145px;left:14px;}}
+
+    /* BACKDROP overlay saat panel CMS terbuka */
+    #cms-panel-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);z-index:calc(var(--cms-z)+4);display:none;animation:cms-bd-in 0.25s ease;}
+    #cms-panel-backdrop.open{display:block;}
+    @keyframes cms-bd-in{from{opacity:0}to{opacity:1}}
     .cms-fab-btn{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#0f3460,#16427a);border:2px solid rgba(212,160,23,.45);color:white;font-size:1.1em;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 24px rgba(15,52,96,.5);transition:all .3s;position:relative;}
     .cms-fab-btn:hover{transform:scale(1.1);border-color:var(--cms-accent);box-shadow:0 8px 32px rgba(212,160,23,.4);}
     .cms-fab-btn.active-admin{background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;border-color:#d4a017;}
@@ -5826,6 +5831,9 @@ setInterval(fetchPiPrice, 300000);
       </div>
     </div>
 
+    <!-- Backdrop overlay saat panel terbuka -->
+    <div id="cms-panel-backdrop" onclick="cmsUI.closePanel()"></div>
+
     <!-- Admin Panel -->
     <div id="cms-panel">
       <div class="cms-ph">
@@ -5987,17 +5995,21 @@ setInterval(fetchPiPrice, 300000);
             <div id="cms-pimpinan-preview" style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px dashed rgba(212,160,23,0.4);display:flex;align-items:center;justify-content:center;margin-bottom:8px;overflow:hidden;">
               <i class="fas fa-user" style="color:rgba(255,255,255,0.2);font-size:1.8em;"></i>
             </div>
-            <input type="file" id="cms-foto-pimpinan" accept="image/*" style="display:none;" onchange="cmsUI.previewAndUploadFoto(this,'pimpinan_foto','cms-pimpinan-preview')">
-            <button onclick="document.getElementById('cms-foto-pimpinan').click()" class="cms-fsave" style="margin-bottom:8px;"><i class="fas fa-upload"></i> Pilih & Upload Foto Pimpinan</button>
-            <div id="cms-pimpinan-progress" style="display:none;"></div>
+            <input type="file" id="cms-foto-pimpinan" accept="image/*" style="display:none;" onchange="cmsUI.previewFotoLokal(this,'cms-pimpinan-preview','pimpinan_foto')">
+            <button onclick="document.getElementById('cms-foto-pimpinan').click()" class="cms-fsave" style="margin-bottom:6px;"><i class="fas fa-image"></i> Pilih Foto Pimpinan</button>
+            <div id="cms-pimpinan-fname" style="display:none;color:rgba(255,255,255,0.4);font-size:0.71em;margin-bottom:6px;padding:4px 8px;background:rgba(255,255,255,0.04);border-radius:6px;"></div>
+            <button id="cms-pimpinan-savebtn" onclick="cmsUI.doUploadProfil('pimpinan_foto','cms-pimpinan-preview','cms-pimpinan-progress')" class="cms-fsave" style="display:none;background:linear-gradient(135deg,#10b981,#059669);"><i class="fas fa-save"></i> Simpan & Upload Foto</button>
+            <div id="cms-pimpinan-progress" style="display:none;margin-top:6px;padding:8px 10px;border-radius:8px;font-size:0.75em;text-align:center;"></div>
 
-            <label class="cms-flbl" style="margin-top:12px;">Logo Yayasan (untuk Navbar)</label>
+            <label class="cms-flbl" style="margin-top:14px;">Logo Yayasan (untuk Navbar)</label>
             <div id="cms-logo-preview" style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px dashed rgba(212,160,23,0.4);display:flex;align-items:center;justify-content:center;margin-bottom:8px;overflow:hidden;">
               <i class="fas fa-mosque" style="color:rgba(255,255,255,0.2);font-size:1.5em;"></i>
             </div>
-            <input type="file" id="cms-foto-logo" accept="image/*" style="display:none;" onchange="cmsUI.previewAndUploadFoto(this,'logo_yayasan','cms-logo-preview')">
-            <button onclick="document.getElementById('cms-foto-logo').click()" class="cms-fsave"><i class="fas fa-upload"></i> Pilih & Upload Logo</button>
-            <div id="cms-logo-progress" style="display:none;"></div>
+            <input type="file" id="cms-foto-logo" accept="image/*" style="display:none;" onchange="cmsUI.previewFotoLokal(this,'cms-logo-preview','logo_yayasan')">
+            <button onclick="document.getElementById('cms-foto-logo').click()" class="cms-fsave" style="margin-bottom:6px;"><i class="fas fa-image"></i> Pilih Logo</button>
+            <div id="cms-logo-fname" style="display:none;color:rgba(255,255,255,0.4);font-size:0.71em;margin-bottom:6px;padding:4px 8px;background:rgba(255,255,255,0.04);border-radius:6px;"></div>
+            <button id="cms-logo-savebtn" onclick="cmsUI.doUploadProfil('logo_yayasan','cms-logo-preview','cms-logo-progress')" class="cms-fsave" style="display:none;background:linear-gradient(135deg,#10b981,#059669);"><i class="fas fa-save"></i> Simpan & Upload Logo</button>
+            <div id="cms-logo-progress" style="display:none;margin-top:6px;padding:8px 10px;border-radius:8px;font-size:0.75em;text-align:center;"></div>
           </div>
         </div>
 
@@ -6340,8 +6352,17 @@ setInterval(fetchPiPrice, 300000);
     },
 
     fabClick(){if(!CMS.isAdmin)this.openLogin();else this.openPanel();},
-    openPanel(){document.getElementById('cms-panel').classList.add('open');this._loadPanelData();},
-    closePanel(){document.getElementById('cms-panel').classList.remove('open');},
+    openPanel(){
+      document.getElementById('cms-panel').classList.add('open');
+      document.getElementById('cms-panel-backdrop').classList.add('open');
+      document.body.style.overflow='hidden';
+      this._loadPanelData();
+    },
+    closePanel(){
+      document.getElementById('cms-panel').classList.remove('open');
+      document.getElementById('cms-panel-backdrop').classList.remove('open');
+      document.body.style.overflow='';
+    },
 
     toggleEdit(){
       if(!CMS.isAdmin){this.openLogin();return;}
@@ -6723,30 +6744,73 @@ setInterval(fetchPiPrice, 300000);
       }
     },
 
-    // Upload foto profil/logo
-    async previewAndUploadFoto(input, docKey, previewId){
-      const file=input.files[0];if(!file)return;
-      if(file.size>5*1024*1024){this.toast('❌ Ukuran file maks. 5MB','error');return;}
-      const prevEl=document.getElementById(previewId);
-      // Preview lokal dulu
-      const reader=new FileReader();
-      reader.onload=async(e)=>{
-        if(prevEl){prevEl.style.backgroundImage=`url('${e.target.result}')`;prevEl.style.backgroundSize='cover';prevEl.style.backgroundPosition='center';prevEl.innerHTML='';}
-        // Upload ke storage
-        this.toast('⏳ Mengupload foto...','');
-        try{
-          const ext=file.name.split('.').pop();
-          const path=`profil/${docKey}_${Date.now()}.${ext}`;
-          const url=await this._uploadFileToStorage(file, path);
-          // Simpan URL ke Firestore
-          await CMS.db.collection(CMS_CONFIG.contentCollection).doc(docKey).set({value:url,field:docKey,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:CMS.user?.email},{merge:true});
-          // Update di halaman
-          if(docKey==='pimpinan_foto'){const img=document.querySelector('.pengantar-img');if(img&&img.tagName==='IMG')img.src=url;}
-          if(docKey==='logo_yayasan'){const imgs=document.querySelectorAll('.logo-icon img');imgs.forEach(img=>img.src=url);}
-          this.toast('✅ Foto berhasil disimpan!','success');
-        }catch(e){this.toast('❌ Upload gagal: '+e.message,'error');}
+    // Preview foto lokal sebelum upload — tampilkan tombol Simpan
+    previewFotoLokal(input, previewId, docKey){
+      const file = input.files[0]; if(!file) return;
+      if(file.size > 5*1024*1024){ this.toast('❌ Ukuran file maks. 5MB','error'); return; }
+      const prevEl = document.getElementById(previewId);
+      // Tentukan elemen fname dan savebtn berdasarkan docKey
+      const suffix = docKey === 'pimpinan_foto' ? 'pimpinan' : 'logo';
+      const fnameEl = document.getElementById('cms-'+suffix+'-fname');
+      const saveBtn = document.getElementById('cms-'+suffix+'-savebtn');
+      // Simpan file di memory untuk diupload nanti
+      window['_cmsPendingFile_'+docKey] = file;
+      // Preview lokal
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if(prevEl){
+          prevEl.style.backgroundImage = `url('${e.target.result}')`;
+          prevEl.style.backgroundSize = 'cover';
+          prevEl.style.backgroundPosition = 'center';
+          prevEl.innerHTML = '';
+        }
+        if(fnameEl){ fnameEl.textContent = '📎 '+file.name+' ('+Math.round(file.size/1024)+'KB)'; fnameEl.style.display='block'; }
+        if(saveBtn){ saveBtn.style.display='flex'; }
+        this.toast('✅ Foto dipilih. Klik "Simpan & Upload" untuk menyimpan.','');
       };
       reader.readAsDataURL(file);
+    },
+
+    // Upload dan simpan foto profil/logo ke Firebase
+    async doUploadProfil(docKey, previewId, progressId){
+      const file = window['_cmsPendingFile_'+docKey];
+      if(!file){ this.toast('Pilih foto terlebih dahulu',''); return; }
+      const progEl = document.getElementById(progressId);
+      const suffix = docKey === 'pimpinan_foto' ? 'pimpinan' : 'logo';
+      const saveBtn = document.getElementById('cms-'+suffix+'-savebtn');
+      if(progEl){ progEl.style.display='block'; progEl.style.background='rgba(212,160,23,0.1)'; progEl.style.color='#d4a017'; progEl.textContent='⏳ Mengupload foto...'; }
+      if(saveBtn){ saveBtn.disabled=true; saveBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Uploading...'; }
+      try{
+        const ext = file.name.split('.').pop();
+        const path = `profil/${docKey}_${Date.now()}.${ext}`;
+        const url = await this._uploadFileToStorage(file, path);
+        // Simpan URL ke Firestore
+        await CMS.db.collection(CMS_CONFIG.contentCollection).doc(docKey).set({
+          value: url, field: docKey,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: CMS.user?.email
+        }, {merge:true});
+        // Update DOM langsung
+        if(docKey==='pimpinan_foto'){
+          document.querySelectorAll('.pengantar-img').forEach(img=>{ if(img.tagName==='IMG') img.src=url; });
+        }
+        if(docKey==='logo_yayasan'){
+          document.querySelectorAll('.logo-icon img').forEach(img=>img.src=url);
+        }
+        window['_cmsPendingFile_'+docKey] = null;
+        if(progEl){ progEl.style.background='rgba(16,185,129,0.12)'; progEl.style.color='#6ee7b7'; progEl.textContent='✅ Foto berhasil disimpan!'; setTimeout(()=>{ progEl.style.display='none'; },3000); }
+        if(saveBtn){ saveBtn.style.display='none'; saveBtn.disabled=false; saveBtn.innerHTML='<i class="fas fa-save"></i> Simpan & Upload'; }
+        this.toast('✅ Foto berhasil diupload & disimpan!','success');
+      }catch(e){
+        if(progEl){ progEl.style.background='rgba(239,68,68,0.12)'; progEl.style.color='#fca5a5'; progEl.textContent='❌ Gagal: '+e.message; }
+        if(saveBtn){ saveBtn.disabled=false; saveBtn.innerHTML='<i class="fas fa-save"></i> Simpan & Upload Foto'; }
+        this.toast('❌ Upload gagal: '+e.message,'error');
+      }
+    },
+
+    // Upload foto profil/logo (legacy — tetap ada untuk kompatibilitas)
+    async previewAndUploadFoto(input, docKey, previewId){
+      this.previewFotoLokal(input, previewId, docKey);
     },
 
     // Buka modal upload galeri foto
