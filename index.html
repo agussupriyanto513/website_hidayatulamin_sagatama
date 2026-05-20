@@ -55,7 +55,7 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; scroll-behavior: smooth; }
-        [id] { scroll-margin-top: 100px; }
+        [id] { scroll-margin-top: 80px; }
 
         body {
             font-family: 'DM Sans', sans-serif;
@@ -189,19 +189,20 @@
 
         /* ======= NAVBAR ======= */
         nav {
-            background: rgba(7, 13, 26, 0.97);
-            backdrop-filter: blur(20px);
+            background: rgba(7, 13, 26, 0.98);
+            backdrop-filter: blur(24px);
             position: fixed;
             top: 0;
             width: 100%;
             z-index: 1000;
-            height: 80px;
+            height: 64px;
             display: flex;
             align-items: center;
-            border-bottom: 1px solid rgba(212, 160, 23, 0.25);
+            border-bottom: 1px solid rgba(212, 160, 23, 0.2);
             transition: all 0.3s ease;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
         }
-        nav.scrolled { height: 68px; box-shadow: 0 4px 40px rgba(0,0,0,0.5); }
+        nav.scrolled { height: 58px; box-shadow: 0 4px 40px rgba(0,0,0,0.5); }
 
         .nav-container {
             display: flex;
@@ -209,22 +210,22 @@
             max-width: 1400px;
             width: 100%;
             margin: 0 auto;
-            padding: 0 16px;
-            gap: 4px;
+            padding: 0 20px;
+            gap: 6px;
         }
 
         .logo-nav {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 9px;
             text-decoration: none;
-            margin-right: 10px;
+            margin-right: 12px;
             flex-shrink: 0;
         }
 
         .logo-icon {
-            width: 48px;
-            height: 48px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             border: 2px solid var(--accent);
             background: white;
@@ -233,7 +234,7 @@
             justify-content: center;
             overflow: hidden;
             flex-shrink: 0;
-            box-shadow: 0 0 12px rgba(212,160,23,0.4);
+            box-shadow: 0 0 10px rgba(212,160,23,0.35);
         }
         .logo-icon img {
             width: 100%;
@@ -243,8 +244,8 @@
         }
 
         .logo-text { display: flex; flex-direction: column; }
-        .logo-text .name { color: var(--white); font-weight: 700; font-size: 0.82em; letter-spacing: 0.5px; line-height: 1.2; }
-        .logo-text .tagline { color: var(--accent); font-size: 0.6em; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; }
+        .logo-text .name { color: var(--white); font-weight: 700; font-size: 0.78em; letter-spacing: 0.4px; line-height: 1.2; white-space: nowrap; }
+        .logo-text .tagline { color: var(--accent); font-size: 0.55em; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; }
 
         /* HAMBURGER */
         .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; padding: 8px; cursor: pointer; z-index: 1100; }
@@ -361,21 +362,20 @@
         .dropdown { position: relative; }
         .dropbtn {
             background: transparent;
-            border: 1px solid rgba(212,160,23,0.3);
-            color: rgba(255,255,255,0.85);
-            padding: 7px 10px; border-radius: 8px;
-            font-weight: 500; font-size: 0.7em;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.8);
+            padding: 6px 10px; border-radius: 8px;
+            font-weight: 500; font-size: 0.68em;
             display: flex; align-items: center; gap: 5px;
             text-transform: uppercase; letter-spacing: 0.3px;
-            transition: all 0.25s; font-family: 'DM Sans', sans-serif;
-            white-space: nowrap;
+            transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+            white-space: nowrap; cursor: pointer;
         }
-        .dropbtn i { color: var(--accent); font-size: 0.9em; }
-        .dropdown:hover .dropbtn, .dropbtn:hover { background: rgba(212,160,23,0.12); border-color: var(--accent); color: var(--white); }
-        .dropbtn.mart { background: linear-gradient(135deg, rgba(13,148,136,0.3), rgba(13,148,136,0.15)); border-color: var(--emerald); color: #5eead4; }
-        .dropbtn.mart:hover { background: rgba(13,148,136,0.35); }
-        .dropbtn.pilar { background: linear-gradient(135deg, rgba(212,160,23,0.25), rgba(240,200,66,0.15)); border-color: var(--accent); color: var(--accent-light); }
-        .dropbtn.pilar:hover { background: rgba(212,160,23,0.35); }
+        .dropbtn i { color: var(--accent); font-size: 0.85em; }
+        .dropdown:hover .dropbtn, .dropbtn:hover { background: rgba(212,160,23,0.1); border-color: rgba(212,160,23,0.4); color: var(--white); }
+        .dropbtn.mart { background: linear-gradient(135deg, rgba(13,148,136,0.25), rgba(13,148,136,0.1)); border-color: rgba(13,148,136,0.4); color: #5eead4; }
+        .dropbtn.mart:hover { background: rgba(13,148,136,0.3); }
+        .dropbtn.pilar { background: linear-gradient(135deg, rgba(212,160,23,0.2), rgba(240,200,66,0.1)); border-color: rgba(212,160,23,0.4); color: var(--accent-light); }
 
         .dropdown-content {
             display: none; position: absolute;
@@ -426,7 +426,7 @@
         .marquee-bar {
             background: var(--dark); color: var(--accent);
             padding: 9px 0; font-size: 0.8em; font-weight: 600;
-            margin-top: 80px; border-bottom: 1px solid rgba(212,160,23,0.3);
+            margin-top: 64px; border-bottom: 1px solid rgba(212,160,23,0.3);
             overflow: hidden; position: relative;
         }
         .marquee-bar::before {
@@ -470,7 +470,7 @@
             background: var(--dark); min-height: 95vh;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
-            text-align: center; padding: 100px 20px 80px;
+            text-align: center; padding: 90px 20px 80px;
             position: relative; overflow: hidden;
         }
         .hero-bg {
@@ -1660,7 +1660,7 @@
         .swm-signout button:hover { background: rgba(239,68,68,0.18); }
 
         /* Nav wallet button */
-        .nav-sgt-btn { display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg,rgba(212,160,23,0.22),rgba(212,160,23,0.12)); border: 1px solid rgba(212,160,23,0.4); color: #d4a017; padding: 7px 14px; border-radius: 8px; font-family: 'DM Sans',sans-serif; font-size: 0.74em; font-weight: 700; cursor: pointer; transition: 0.25s; white-space: nowrap; letter-spacing: 0.5px; position: relative; }
+        .nav-sgt-btn { display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg,rgba(212,160,23,0.2),rgba(212,160,23,0.1)); border: 1px solid rgba(212,160,23,0.35); color: #d4a017; padding: 6px 12px; border-radius: 8px; font-family: 'DM Sans',sans-serif; font-size: 0.7em; font-weight: 700; cursor: pointer; transition: 0.25s; white-space: nowrap; letter-spacing: 0.4px; position: relative; flex-shrink: 0; }
         .nav-sgt-btn:hover { background: rgba(212,160,23,0.28); box-shadow: 0 4px 16px rgba(212,160,23,0.25); }
         .nav-sgt-bal { font-family: 'Cinzel',serif; font-size: 0.9em; }
         .nav-sgt-dot { width: 7px; height: 7px; border-radius: 50%; background: #d4a017; animation: sgt-pulse-dot 2s ease-in-out infinite; }
@@ -1685,7 +1685,7 @@
 
         /* ── NAVBAR Mobile ── */
         @media (max-width: 768px) {
-            nav { height: 64px; }
+            nav { height: 58px; }
             .nav-container { padding: 0 14px; gap: 8px; }
             .logo-icon { width: 38px; height: 38px; font-size: 0.85em; display: flex !important; flex-shrink: 0; }
             .logo-text .name { font-size: 0.75em; }
@@ -1707,7 +1707,7 @@
 
         /* ── HERO ── */
         @media (max-width: 768px) {
-            .hero { padding: 110px 16px 40px; min-height: auto; }
+            .hero { padding: 96px 16px 40px; min-height: auto; }
             .hero-content { padding: 0; max-width: 100%; }
             .hero-eyebrow { font-size: 0.7em; padding: 6px 14px; }
             .hero-title { font-size: clamp(1.8em, 7vw, 2.6em) !important; line-height: 1.2; }
@@ -2418,7 +2418,7 @@
         </a>
 
         <!-- Desktop Nav -->
-        <div class="nav-desktop" style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
+        <div class="nav-desktop" style="display: flex; gap: 3px; align-items: center; flex-shrink: 0; flex: 1; justify-content: flex-end; overflow: hidden;">
 
             <!-- 3 PILAR -->
             <div class="dropdown">
@@ -2530,7 +2530,7 @@
         <button class="nav-sgt-btn" onclick="openSGTWallet()" id="navSgtBtn" title="SGT Wallet Anda">
             <div class="nav-sgt-dot"></div>
             <span>SGT</span>
-            <span class="nav-sgt-bal" id="navSgtBal">Wallet</span>
+            <span class="nav-sgt-bal" id="navSgtBal">Login</span>
         </button>
 
         <!-- Live Visitor Badge -->
@@ -5588,7 +5588,7 @@ setInterval(fetchPiPrice, 300000);
   'use strict';
 
   const CMS_CONFIG = {
-    adminEmails: ['admin@sagatama.id','asni@sagatama.id','dev@sagatama.id'],
+    adminEmails: ['admin@sagatama.id','asni@sagatama.id','dev@sagatama.id','admin@website-sagatama.pi'],
     adminCollection: 'cms_admins',
     contentCollection: 'cms_content',
     version: '2.0'
@@ -5774,6 +5774,7 @@ setInterval(fetchPiPrice, 300000);
           <i class="fas fa-lock"></i> Masuk sebagai Admin
         </button>
         <div style="text-align:center;color:rgba(255,255,255,.18);font-size:.69em;margin-top:8px;">Akses khusus pengelola Yayasan Sagatama</div>
+        <div style="text-align:center;color:rgba(212,160,23,.35);font-size:.65em;margin-top:6px;line-height:1.5;">Jika email baru dibuat, login pertama kali akan otomatis mendaftarkan Anda jika belum ada admin lain.</div>
       </div>
     </div>
 
@@ -6071,6 +6072,23 @@ setInterval(fetchPiPrice, 300000);
     return false;
   }
 
+  // Helper: daftarkan email sebagai admin pertama kali
+  async function registerAdminIfFirst(user){
+    try{
+      const snap = await CMS.db.collection(CMS_CONFIG.adminCollection).limit(1).get();
+      if(snap.empty){
+        // Tidak ada admin sama sekali — jadikan user ini admin pertama
+        await CMS.db.collection(CMS_CONFIG.adminCollection).doc(user.uid).set({
+          email: user.email, role: 'admin',
+          addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          note: 'Admin pertama — otomatis dibuat saat login'
+        });
+        return true;
+      }
+    }catch(e){ console.warn('[CMS] registerAdminIfFirst:', e); }
+    return false;
+  }
+
   async function loadContent(){
     if(!CMS.db)return;
     try{
@@ -6100,12 +6118,35 @@ setInterval(fetchPiPrice, 300000);
       const pw=document.getElementById('cms-pw').value;
       const err=document.getElementById('cms-lerr');err.style.display='none';
       if(!em||!pw){err.textContent='Email dan password harus diisi.';err.style.display='block';return;}
+      const submitBtn = document.querySelector('.cms-login-submit');
+      if(submitBtn){ submitBtn.disabled=true; submitBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Memeriksa...'; }
       try{
         const r=await CMS.auth.signInWithEmailAndPassword(em,pw);
-        const ok=await checkAdmin(r.user);
-        if(!ok){await CMS.auth.signOut();err.textContent='Akun ini tidak memiliki akses admin CMS.';err.style.display='block';return;}
+        let ok=await checkAdmin(r.user);
+        if(!ok){
+          // Coba daftarkan sebagai admin pertama
+          ok = await registerAdminIfFirst(r.user);
+          if(!ok){
+            await CMS.auth.signOut();
+            err.innerHTML='Akun ini belum terdaftar sebagai admin CMS.<br><small style="color:rgba(255,255,255,0.4);font-size:0.85em;">Minta admin yang sudah ada untuk menambahkan email Anda, atau hubungi pengembang untuk mendaftarkan akun Anda di koleksi <code>cms_admins</code> Firestore.</small>';
+            err.style.display='block';
+            return;
+          }
+        }
         this._afterLogin(r.user);
-      }catch(e){err.textContent=e.message.replace('Firebase: ','');err.style.display='block';}
+      }catch(e){
+        const errMap = {
+          'auth/user-not-found': 'Email tidak ditemukan. Pastikan akun sudah dibuat di Firebase Authentication.',
+          'auth/wrong-password': 'Password salah.',
+          'auth/invalid-email': 'Format email tidak valid.',
+          'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi beberapa menit.',
+          'auth/invalid-credential': 'Email atau password salah. Pastikan akun sudah dibuat di Firebase Authentication.',
+        };
+        err.innerHTML = errMap[e.code] || e.message.replace('Firebase: ','');
+        err.style.display='block';
+      }finally{
+        if(submitBtn){ submitBtn.disabled=false; submitBtn.innerHTML='<i class="fas fa-lock"></i> Masuk sebagai Admin'; }
+      }
     },
 
     async loginGoogle(){
@@ -6113,8 +6154,11 @@ setInterval(fetchPiPrice, 300000);
       try{
         const p=new firebase.auth.GoogleAuthProvider();
         const r=await CMS.auth.signInWithPopup(p);
-        const ok=await checkAdmin(r.user);
-        if(!ok){await CMS.auth.signOut();err.textContent='Akun Google ini tidak terdaftar sebagai admin.';err.style.display='block';return;}
+        let ok=await checkAdmin(r.user);
+        if(!ok){
+          ok = await registerAdminIfFirst(r.user);
+          if(!ok){await CMS.auth.signOut();err.textContent='Akun Google ini belum terdaftar sebagai admin. Minta admin yang sudah ada untuk menambahkan email Anda.';err.style.display='block';return;}
+        }
         this._afterLogin(r.user);
       }catch(e){err.textContent=e.message.replace('Firebase: ','');err.style.display='block';}
     },
