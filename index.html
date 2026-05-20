@@ -6875,7 +6875,7 @@ setInterval(fetchPiPrice, 300000);
       catch(e){this.toast('❌ '+e.message,'error');}
     },
 
-    logout(){
+    async logout(){
       try{if(CMS.auth?.currentUser)await CMS.auth.signOut();}catch(e){}
       CMS.isAdmin=false;CMS.user=null;CMS.editMode=false;CMS.pendingChanges={};
       document.body.classList.remove('cms-editing');
