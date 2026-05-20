@@ -14,10 +14,11 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230f3460'/><text y='.9em' font-size='70' x='50%' text-anchor='middle' fill='%23d4a017' font-family='serif' font-weight='bold'>S</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600;700&family=Amiri:wght@400;700&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
-    <!-- Firebase SDK (Auth + Firestore) -->
+    <!-- Firebase SDK (Auth + Firestore + Storage) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
     <!-- Pi Network SDK -->
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
     <script>
@@ -5946,6 +5947,40 @@ setInterval(fetchPiPrice, 300000);
           </div>
         </div>
 
+        <!-- Galeri Foto & Video -->
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('media'); cmsUI.loadMedia()"><span><i class="ci fas fa-photo-film"></i>Galeri Foto & Video</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-media">
+          <div style="padding:0 4px 12px;">
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <button class="cms-mbtn a" onclick="cmsUI.openUploadFoto()" style="flex:1;"><i class="fas fa-image"></i> Upload Foto</button>
+              <button class="cms-mbtn a" onclick="cmsUI.openAddVideo()" style="flex:1;background:rgba(220,38,38,0.2);border-color:rgba(220,38,38,0.5);"><i class="fab fa-youtube"></i> Tambah Video</button>
+            </div>
+            <div id="cms-mlist"><div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:10px 0;">Klik panah di atas untuk memuat...</div></div>
+          </div>
+        </div>
+
+        <!-- Upload Foto Pimpinan/Profil -->
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('fotoprofil')"><span><i class="ci fas fa-user-circle"></i>Foto Profil & Logo</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-fotoprofil">
+          <div style="padding:0 4px 12px;">
+            <label class="cms-flbl">Foto Pimpinan (untuk Kata Pengantar)</label>
+            <div id="cms-pimpinan-preview" style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px dashed rgba(212,160,23,0.4);display:flex;align-items:center;justify-content:center;margin-bottom:8px;overflow:hidden;">
+              <i class="fas fa-user" style="color:rgba(255,255,255,0.2);font-size:1.8em;"></i>
+            </div>
+            <input type="file" id="cms-foto-pimpinan" accept="image/*" style="display:none;" onchange="cmsUI.previewAndUploadFoto(this,'pimpinan_foto','cms-pimpinan-preview')">
+            <button onclick="document.getElementById('cms-foto-pimpinan').click()" class="cms-fsave" style="margin-bottom:8px;"><i class="fas fa-upload"></i> Pilih & Upload Foto Pimpinan</button>
+            <div id="cms-pimpinan-progress" style="display:none;"></div>
+
+            <label class="cms-flbl" style="margin-top:12px;">Logo Yayasan (untuk Navbar)</label>
+            <div id="cms-logo-preview" style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px dashed rgba(212,160,23,0.4);display:flex;align-items:center;justify-content:center;margin-bottom:8px;overflow:hidden;">
+              <i class="fas fa-mosque" style="color:rgba(255,255,255,0.2);font-size:1.5em;"></i>
+            </div>
+            <input type="file" id="cms-foto-logo" accept="image/*" style="display:none;" onchange="cmsUI.previewAndUploadFoto(this,'logo_yayasan','cms-logo-preview')">
+            <button onclick="document.getElementById('cms-foto-logo').click()" class="cms-fsave"><i class="fas fa-upload"></i> Pilih & Upload Logo</button>
+            <div id="cms-logo-progress" style="display:none;"></div>
+          </div>
+        </div>
+
         <!-- Tambah Admin -->
         <button class="cms-ctgl" onclick="cmsUI.ctgl('addadmin')"><span><i class="ci fas fa-user-shield"></i>Tambah Admin</span><i class="fas fa-chevron-down arr"></i></button>
         <div class="cms-cpanel" id="cmsc-addadmin">
@@ -5980,18 +6015,95 @@ setInterval(fetchPiPrice, 300000);
 
     <!-- Warta Modal -->
     <div id="cms-wmodal">
-      <div style="background:#070d1a;border:1px solid rgba(212,160,23,.3);border-radius:20px;width:100%;max-width:520px;padding:24px;font-family:'DM Sans',sans-serif;">
+      <div style="background:#070d1a;border:1px solid rgba(212,160,23,.3);border-radius:20px;width:100%;max-width:520px;padding:24px;font-family:'DM Sans',sans-serif;max-height:90vh;overflow-y:auto;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <div style="color:#d4a017;font-weight:800;font-size:.9em;"><i class="fas fa-newspaper" style="margin-right:8px;"></i><span id="cwm-title">Tambah Berita</span></div>
           <button onclick="cmsUI.closeWM()" style="background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;"><i class="fas fa-times"></i></button>
         </div>
         <input class="cms-finp" id="cwm-judul" placeholder="Judul berita..." style="width:100%;">
         <textarea class="cms-finp" id="cwm-isi" rows="5" placeholder="Isi berita lengkap..." style="width:100%;resize:vertical;"></textarea>
-        <input class="cms-finp" id="cwm-img" placeholder="URL gambar (opsional)" style="width:100%;">
+        <!-- Foto Berita -->
+        <div style="margin-bottom:8px;">
+          <label class="cms-flbl">Foto Berita</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <button type="button" onclick="cmsUI.toggleImgInput('file')" id="cwm-tab-file" style="flex:1;padding:7px;border-radius:7px;border:1px solid rgba(212,160,23,0.6);background:rgba(212,160,23,0.15);color:#d4a017;font-size:0.78em;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-upload"></i> Upload File</button>
+            <button type="button" onclick="cmsUI.toggleImgInput('url')" id="cwm-tab-url" style="flex:1;padding:7px;border-radius:7px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5);font-size:0.78em;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-link"></i> Pakai URL</button>
+          </div>
+          <!-- Upload file -->
+          <div id="cwm-file-area">
+            <div id="cwm-img-preview" style="width:100%;height:120px;border-radius:10px;background:rgba(255,255,255,0.04);border:2px dashed rgba(212,160,23,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:8px;overflow:hidden;cursor:pointer;" onclick="document.getElementById('cwm-img-file').click()">
+              <div id="cwm-preview-placeholder" style="text-align:center;color:rgba(255,255,255,0.3);font-size:0.8em;"><i class="fas fa-image" style="font-size:2em;display:block;margin-bottom:6px;"></i>Klik untuk pilih foto</div>
+            </div>
+            <input type="file" id="cwm-img-file" accept="image/*" style="display:none;" onchange="cmsUI.previewWartaImg(this)">
+            <div id="cwm-upload-progress" style="display:none;background:rgba(212,160,23,0.1);border-radius:8px;padding:8px 12px;font-size:0.76em;color:#d4a017;text-align:center;margin-bottom:8px;"></div>
+          </div>
+          <!-- URL input -->
+          <div id="cwm-url-area" style="display:none;">
+            <input class="cms-finp" id="cwm-img" placeholder="URL gambar (https://...)" style="width:100%;">
+          </div>
+        </div>
         <input type="hidden" id="cwm-eid">
+        <input type="hidden" id="cwm-img-resolved">
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
           <button onclick="cmsUI.closeWM()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
           <button onclick="cmsUI.saveWarta()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-save"></i> Simpan Berita</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Upload Foto Galeri -->
+    <div id="cms-upload-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#070d1a;border:1px solid rgba(212,160,23,.3);border-radius:20px;width:100%;max-width:480px;padding:24px;font-family:'DM Sans',sans-serif;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="color:#d4a017;font-weight:800;font-size:.9em;"><i class="fas fa-image" style="margin-right:8px;"></i>Upload Foto ke Galeri</div>
+          <button onclick="cmsUI.closeUploadModal()" style="background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="cms-upload-drop" style="width:100%;height:140px;border-radius:12px;background:rgba(255,255,255,0.03);border:2px dashed rgba(212,160,23,0.4);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:0.2s;margin-bottom:12px;" onclick="document.getElementById('cms-upload-file').click()" ondragover="event.preventDefault();this.style.borderColor='#d4a017'" ondrop="cmsUI.handleDrop(event)">
+          <i class="fas fa-cloud-upload-alt" style="font-size:2.5em;color:rgba(212,160,23,0.5);margin-bottom:10px;"></i>
+          <div style="color:rgba(255,255,255,0.5);font-size:0.82em;text-align:center;">Klik atau drag & drop foto di sini<br><span style="font-size:0.85em;color:rgba(255,255,255,0.3);">JPG, PNG, WebP — Maks. 5MB</span></div>
+        </div>
+        <input type="file" id="cms-upload-file" accept="image/*" multiple style="display:none;" onchange="cmsUI.handleFileSelect(this)">
+        <input class="cms-finp" id="cms-upload-caption" placeholder="Keterangan foto (opsional)" style="width:100%;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <select class="cms-finp" id="cms-upload-kategori" style="flex:1;">
+            <option value="umum">Umum</option>
+            <option value="kegiatan">Kegiatan</option>
+            <option value="santri">Santri</option>
+            <option value="fasilitas">Fasilitas</option>
+            <option value="event">Event</option>
+          </select>
+        </div>
+        <div id="cms-upload-queue" style="display:none;margin-bottom:12px;max-height:150px;overflow-y:auto;"></div>
+        <div id="cms-upload-main-progress" style="display:none;background:rgba(212,160,23,0.1);border-radius:8px;padding:10px 14px;font-size:0.78em;color:#d4a017;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button onclick="cmsUI.closeUploadModal()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
+          <button onclick="cmsUI.doUploadFoto()" id="cms-do-upload-btn" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-upload"></i> Upload Sekarang</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Tambah Video -->
+    <div id="cms-video-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#070d1a;border:1px solid rgba(220,38,38,0.3);border-radius:20px;width:100%;max-width:480px;padding:24px;font-family:'DM Sans',sans-serif;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="color:#f87171;font-weight:800;font-size:.9em;"><i class="fab fa-youtube" style="margin-right:8px;"></i>Tambah Video ke Galeri</div>
+          <button onclick="cmsUI.closeVideoModal()" style="background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <label class="cms-flbl">Link YouTube / Google Drive</label>
+        <input class="cms-finp" id="cms-video-url" placeholder="https://youtube.com/watch?v=..." style="width:100%;margin-bottom:8px;" oninput="cmsUI.previewVideoUrl(this.value)">
+        <div id="cms-video-thumb" style="display:none;width:100%;border-radius:10px;overflow:hidden;margin-bottom:10px;aspect-ratio:16/9;background:#000;"></div>
+        <input class="cms-finp" id="cms-video-judul" placeholder="Judul video..." style="width:100%;margin-bottom:8px;">
+        <input class="cms-finp" id="cms-video-desc" placeholder="Deskripsi singkat (opsional)" style="width:100%;margin-bottom:8px;">
+        <select class="cms-finp" id="cms-video-kategori" style="width:100%;margin-bottom:12px;">
+          <option value="umum">Umum</option>
+          <option value="ceramah">Ceramah & Dakwah</option>
+          <option value="kegiatan">Kegiatan Santri</option>
+          <option value="profil">Profil Yayasan</option>
+        </select>
+        <input type="hidden" id="cms-video-eid">
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button onclick="cmsUI.closeVideoModal()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
+          <button onclick="cmsUI.saveVideo()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fab fa-youtube"></i> Simpan Video</button>
         </div>
       </div>
     </div>
@@ -6405,16 +6517,35 @@ setInterval(fetchPiPrice, 300000);
 
     addWarta(){
       document.getElementById('cwm-title').textContent='Tambah Berita Baru';
-      ['cwm-judul','cwm-isi','cwm-img','cwm-eid'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      ['cwm-judul','cwm-isi','cwm-img','cwm-eid','cwm-img-resolved'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      // Reset foto preview
+      const prev=document.getElementById('cwm-img-preview');
+      if(prev){prev.style.backgroundImage='';prev.style.backgroundSize='';}
+      const ph=document.getElementById('cwm-preview-placeholder');if(ph)ph.style.display='flex';
       document.getElementById('cms-wmodal').style.display='flex';
+      this.toggleImgInput('file');
     },
 
     editWarta(id,data){
       document.getElementById('cwm-title').textContent='Edit Berita';
       document.getElementById('cwm-judul').value=data.judul||'';
       document.getElementById('cwm-isi').value=data.isi||'';
-      document.getElementById('cwm-img').value=data.img||'';
       document.getElementById('cwm-eid').value=id;
+      const imgResolved=document.getElementById('cwm-img-resolved');
+      if(imgResolved)imgResolved.value=data.img||'';
+      // Tampilkan gambar yang sudah ada
+      const prev=document.getElementById('cwm-img-preview');
+      const ph=document.getElementById('cwm-preview-placeholder');
+      if(data.img&&prev){
+        prev.style.backgroundImage=`url('${data.img}')`;
+        prev.style.backgroundSize='cover';
+        prev.style.backgroundPosition='center';
+        if(ph)ph.style.display='none';
+        this.toggleImgInput('file');
+      } else {
+        document.getElementById('cwm-img').value=data.img||'';
+        this.toggleImgInput('url');
+      }
       document.getElementById('cms-wmodal').style.display='flex';
     },
 
@@ -6424,9 +6555,13 @@ setInterval(fetchPiPrice, 300000);
       if(!CMS.isAdmin)return;
       const judul=document.getElementById('cwm-judul').value.trim();
       const isi=document.getElementById('cwm-isi').value.trim();
-      const img=document.getElementById('cwm-img').value.trim();
       const eid=document.getElementById('cwm-eid').value;
       if(!judul){this.toast('Judul berita harus diisi','');return;}
+      // Upload foto dulu jika ada file pending
+      await this._ensureWartaImg();
+      // Ambil img dari hidden field (sudah diupload) atau dari URL input
+      let img = document.getElementById('cwm-img-resolved')?.value || '';
+      if(!img) img = document.getElementById('cwm-img')?.value?.trim() || '';
       const data={judul,isi,img,tanggal:firebase.firestore.FieldValue.serverTimestamp(),author:CMS.user?.displayName||CMS.user?.email||'Admin'};
       try{
         if(eid)await CMS.db.collection('warta').doc(eid).update(data);
@@ -6474,10 +6609,273 @@ setInterval(fetchPiPrice, 300000);
           const doc=await CMS.db.collection(CMS_CONFIG.contentCollection).doc(k).get();
           if(doc.exists){const e=document.getElementById(id);if(e)e.value=doc.data().value||'';}
         }));
+        // Load foto profil ke preview panel
+        ['pimpinan_foto','logo_yayasan'].forEach(async(key)=>{
+          try{
+            const doc=await CMS.db.collection(CMS_CONFIG.contentCollection).doc(key).get();
+            if(doc.exists&&doc.data().value){
+              const url=doc.data().value;
+              const previewId=key==='pimpinan_foto'?'cms-pimpinan-preview':'cms-logo-preview';
+              const prev=document.getElementById(previewId);
+              if(prev){prev.style.backgroundImage=`url('${url}')`;prev.style.backgroundSize='cover';prev.style.backgroundPosition='center';prev.innerHTML='';}
+            }
+          }catch(e){}
+        });
       }catch(e){console.warn('[CMS] loadPanelData:',e);}
     },
 
-    async logout(){
+    // ═══ UPLOAD FOTO & VIDEO ═══
+
+    toggleImgInput(mode){
+      const fileArea=document.getElementById('cwm-file-area');
+      const urlArea=document.getElementById('cwm-url-area');
+      const tabFile=document.getElementById('cwm-tab-file');
+      const tabUrl=document.getElementById('cwm-tab-url');
+      if(!fileArea)return;
+      if(mode==='file'){
+        fileArea.style.display='block';urlArea.style.display='none';
+        if(tabFile){tabFile.style.borderColor='rgba(212,160,23,0.6)';tabFile.style.background='rgba(212,160,23,0.15)';tabFile.style.color='#d4a017';}
+        if(tabUrl){tabUrl.style.borderColor='rgba(255,255,255,0.1)';tabUrl.style.background='rgba(255,255,255,0.05)';tabUrl.style.color='rgba(255,255,255,0.5)';}
+      }else{
+        fileArea.style.display='none';urlArea.style.display='block';
+        if(tabUrl){tabUrl.style.borderColor='rgba(212,160,23,0.6)';tabUrl.style.background='rgba(212,160,23,0.15)';tabUrl.style.color='#d4a017';}
+        if(tabFile){tabFile.style.borderColor='rgba(255,255,255,0.1)';tabFile.style.background='rgba(255,255,255,0.05)';tabFile.style.color='rgba(255,255,255,0.5)';}
+      }
+    },
+
+    previewWartaImg(input){
+      const file=input.files[0];if(!file)return;
+      if(file.size>5*1024*1024){this.toast('❌ Ukuran file maks. 5MB','error');return;}
+      const reader=new FileReader();
+      reader.onload=(e)=>{
+        const prev=document.getElementById('cwm-img-preview');
+        const ph=document.getElementById('cwm-preview-placeholder');
+        if(prev){prev.style.backgroundImage=`url('${e.target.result}')`;prev.style.backgroundSize='cover';prev.style.backgroundPosition='center';}
+        if(ph)ph.style.display='none';
+        // Store file for upload on save
+        window._cwmPendingFile=file;
+      };
+      reader.readAsDataURL(file);
+    },
+
+    async _uploadFileToStorage(file, path){
+      const storage = window.fbStore || (window.firebase?.storage ? window.firebase.storage() : null);
+      if(!storage){
+        // Fallback: convert ke base64 dan simpan di Firestore (untuk file < 900KB)
+        if(file.size>900*1024)throw new Error('Ukuran file terlalu besar. Aktifkan Firebase Storage atau gunakan file < 900KB.');
+        return new Promise((res,rej)=>{
+          const r=new FileReader();
+          r.onload=e=>res(e.target.result);
+          r.onerror=()=>rej(new Error('Gagal baca file'));
+          r.readAsDataURL(file);
+        });
+      }
+      const storageRef=storage.ref(path);
+      const snap=await storageRef.put(file);
+      return await snap.ref.getDownloadURL();
+    },
+
+    // Upload foto di modal Warta
+    async _uploadWartaFoto(file){
+      const prog=document.getElementById('cwm-upload-progress');
+      if(prog){prog.style.display='block';prog.textContent='⏳ Mengupload foto...';}
+      try{
+        const ext=file.name.split('.').pop();
+        const path=`warta/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const url=await this._uploadFileToStorage(file, path);
+        const resolved=document.getElementById('cwm-img-resolved');
+        if(resolved)resolved.value=url;
+        if(prog){prog.textContent='✅ Foto berhasil diupload!';}
+        setTimeout(()=>{if(prog)prog.style.display='none';},2000);
+        return url;
+      }catch(e){
+        if(prog){prog.textContent='❌ '+e.message;}
+        this.toast('❌ Upload gagal: '+e.message,'error');
+        throw e;
+      }
+    },
+
+    // Override saveWarta untuk handle upload dulu sebelum simpan
+    async _ensureWartaImg(){
+      if(window._cwmPendingFile){
+        await this._uploadWartaFoto(window._cwmPendingFile);
+        window._cwmPendingFile=null;
+      }
+    },
+
+    // Upload foto profil/logo
+    async previewAndUploadFoto(input, docKey, previewId){
+      const file=input.files[0];if(!file)return;
+      if(file.size>5*1024*1024){this.toast('❌ Ukuran file maks. 5MB','error');return;}
+      const prevEl=document.getElementById(previewId);
+      // Preview lokal dulu
+      const reader=new FileReader();
+      reader.onload=async(e)=>{
+        if(prevEl){prevEl.style.backgroundImage=`url('${e.target.result}')`;prevEl.style.backgroundSize='cover';prevEl.style.backgroundPosition='center';prevEl.innerHTML='';}
+        // Upload ke storage
+        this.toast('⏳ Mengupload foto...','');
+        try{
+          const ext=file.name.split('.').pop();
+          const path=`profil/${docKey}_${Date.now()}.${ext}`;
+          const url=await this._uploadFileToStorage(file, path);
+          // Simpan URL ke Firestore
+          await CMS.db.collection(CMS_CONFIG.contentCollection).doc(docKey).set({value:url,field:docKey,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:CMS.user?.email},{merge:true});
+          // Update di halaman
+          if(docKey==='pimpinan_foto'){const img=document.querySelector('.pengantar-img');if(img&&img.tagName==='IMG')img.src=url;}
+          if(docKey==='logo_yayasan'){const imgs=document.querySelectorAll('.logo-icon img');imgs.forEach(img=>img.src=url);}
+          this.toast('✅ Foto berhasil disimpan!','success');
+        }catch(e){this.toast('❌ Upload gagal: '+e.message,'error');}
+      };
+      reader.readAsDataURL(file);
+    },
+
+    // Buka modal upload galeri foto
+    openUploadFoto(){
+      document.getElementById('cms-upload-modal').style.display='flex';
+      document.getElementById('cms-upload-caption').value='';
+      document.getElementById('cms-upload-queue').style.display='none';
+      document.getElementById('cms-upload-queue').innerHTML='';
+      document.getElementById('cms-upload-main-progress').style.display='none';
+      window._cmsUploadFiles=[];
+    },
+    closeUploadModal(){document.getElementById('cms-upload-modal').style.display='none';window._cmsUploadFiles=[];},
+
+    handleDrop(e){
+      e.preventDefault();
+      const files=Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
+      this._queueFiles(files);
+    },
+    handleFileSelect(input){
+      const files=Array.from(input.files);
+      this._queueFiles(files);
+      input.value='';
+    },
+    _queueFiles(files){
+      window._cmsUploadFiles=(window._cmsUploadFiles||[]).concat(files);
+      const q=document.getElementById('cms-upload-queue');
+      q.style.display='block';q.innerHTML='';
+      window._cmsUploadFiles.forEach((f,i)=>{
+        const d=document.createElement('div');
+        d.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;font-size:0.76em;color:rgba(255,255,255,0.7);';
+        d.innerHTML=`<i class="fas fa-image" style="color:rgba(212,160,23,0.7);flex-shrink:0;"></i><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</span><span style="color:rgba(255,255,255,0.35);flex-shrink:0;">${(f.size/1024).toFixed(0)}KB</span><button onclick="window._cmsUploadFiles.splice(${i},1);cmsUI.handleFileSelect({files:[]})" style="background:none;border:none;color:rgba(255,100,100,0.6);cursor:pointer;font-size:0.9em;padding:0 4px;" title="Hapus"><i class="fas fa-times"></i></button>`;
+        q.appendChild(d);
+      });
+    },
+    async doUploadFoto(){
+      const files=window._cmsUploadFiles||[];
+      if(!files.length){this.toast('Pilih foto terlebih dahulu','');return;}
+      const caption=document.getElementById('cms-upload-caption')?.value.trim()||'';
+      const kategori=document.getElementById('cms-upload-kategori')?.value||'umum';
+      const prog=document.getElementById('cms-upload-main-progress');
+      const btn=document.getElementById('cms-do-upload-btn');
+      prog.style.display='block';if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Mengupload...';}
+      let success=0,fail=0;
+      for(let i=0;i<files.length;i++){
+        const f=files[i];
+        prog.textContent=`⏳ Mengupload ${i+1}/${files.length}: ${f.name}`;
+        try{
+          const ext=f.name.split('.').pop();
+          const path=`galeri/${kategori}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+          const url=await this._uploadFileToStorage(f,path);
+          await CMS.db.collection('galeri').add({url,caption,kategori,nama:f.name,size:f.size,uploadedAt:firebase.firestore.FieldValue.serverTimestamp(),uploadedBy:CMS.user?.email||'admin',tipe:'foto'});
+          success++;
+        }catch(e){fail++;console.warn('Upload gagal:',f.name,e);}
+      }
+      prog.textContent=`✅ ${success} foto berhasil diupload${fail?`, ${fail} gagal`:''}!`;
+      window._cmsUploadFiles=[];
+      if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-upload"></i> Upload Sekarang';}
+      this.toast(`✅ ${success} foto berhasil ditambahkan ke galeri!`,'success');
+      setTimeout(()=>this.closeUploadModal(),1500);
+      this.loadMedia();
+    },
+
+    // Video
+    openAddVideo(){
+      ['cms-video-url','cms-video-judul','cms-video-desc','cms-video-eid'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      document.getElementById('cms-video-thumb').style.display='none';
+      document.getElementById('cms-video-modal').style.display='flex';
+    },
+    closeVideoModal(){document.getElementById('cms-video-modal').style.display='none';},
+
+    previewVideoUrl(url){
+      const thumb=document.getElementById('cms-video-thumb');
+      if(!thumb)return;
+      const ytMatch=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+      if(ytMatch){
+        const vid=ytMatch[1];
+        thumb.style.display='block';
+        thumb.innerHTML=`<img src="https://img.youtube.com/vi/${vid}/hqdefault.jpg" style="width:100%;height:100%;object-fit:cover;">`;
+      }else{
+        thumb.style.display='none';thumb.innerHTML='';
+      }
+    },
+
+    async saveVideo(){
+      if(!CMS.isAdmin)return;
+      const url=(document.getElementById('cms-video-url')?.value||'').trim();
+      const judul=(document.getElementById('cms-video-judul')?.value||'').trim();
+      const desc=(document.getElementById('cms-video-desc')?.value||'').trim();
+      const kategori=document.getElementById('cms-video-kategori')?.value||'umum';
+      const eid=document.getElementById('cms-video-eid')?.value||'';
+      if(!url){this.toast('URL video harus diisi','');return;}
+      if(!judul){this.toast('Judul video harus diisi','');return;}
+      // Extract YouTube ID
+      const ytMatch=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+      const ytId=ytMatch?ytMatch[1]:null;
+      const embedUrl=ytId?`https://www.youtube.com/embed/${ytId}`:url;
+      const thumb=ytId?`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`:'';
+      const data={url,embedUrl,thumb,judul,desc,kategori,tipe:'video',uploadedAt:firebase.firestore.FieldValue.serverTimestamp(),uploadedBy:CMS.user?.email||'admin'};
+      try{
+        if(eid)await CMS.db.collection('galeri').doc(eid).update(data);
+        else await CMS.db.collection('galeri').add(data);
+        this.closeVideoModal();this.loadMedia();
+        this.toast('✅ Video berhasil '+(eid?'diperbarui':'ditambahkan')+'!','success');
+      }catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    // Load daftar media di panel CMS
+    async loadMedia(){
+      if(!CMS.isAdmin||!CMS.db)return;
+      const el=document.getElementById('cms-mlist');if(!el)return;
+      el.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:.74em;text-align:center;padding:8px;">Memuat...</div>';
+      try{
+        const snap=await CMS.db.collection('galeri').orderBy('uploadedAt','desc').limit(20).get();
+        if(snap.empty){el.innerHTML='<div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:12px;">Belum ada media. Upload foto atau tambahkan video.</div>';return;}
+        el.innerHTML='';
+        const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:8px;';
+        snap.forEach(doc=>{
+          const d=doc.data();
+          const isVideo=d.tipe==='video';
+          const thumb=isVideo?d.thumb:(d.url&&d.url.startsWith('data:')?d.url:d.url);
+          const c=document.createElement('div');
+          c.style.cssText='background:rgba(255,255,255,0.04);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);position:relative;';
+          c.innerHTML=`
+            <div style="height:70px;background:rgba(0,0,0,0.3);position:relative;overflow:hidden;">
+              ${thumb?`<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;">`:
+                `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-${isVideo?'video':'image'}" style="font-size:1.8em;color:rgba(255,255,255,0.2);"></i></div>`}
+              ${isVideo?'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;background:rgba(220,38,38,0.8);border-radius:50%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-play" style="color:white;font-size:0.7em;margin-left:2px;"></i></div>':''}
+            </div>
+            <div style="padding:6px 8px;">
+              <div style="font-size:0.72em;color:rgba(255,255,255,0.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">${d.judul||d.caption||d.nama||'(tanpa judul)'}</div>
+              <div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:2px;">${isVideo?'🎬 Video':'🖼️ Foto'} · ${d.kategori||'umum'}</div>
+              <button onclick="cmsUI.deleteMedia('${doc.id}')" style="margin-top:4px;padding:3px 8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-trash"></i> Hapus</button>
+            </div>`;
+          grid.appendChild(c);
+        });
+        el.appendChild(grid);
+        const total=document.createElement('div');total.style.cssText='text-align:center;color:rgba(255,255,255,0.25);font-size:0.68em;margin-top:10px;';total.textContent=snap.size+' media (maks. 20 terbaru)';
+        el.appendChild(total);
+      }catch(e){el.innerHTML='<div style="color:#fca5a5;font-size:.74em;padding:8px;">Error: '+e.message+'</div>';}
+    },
+
+    async deleteMedia(id){
+      if(!CMS.isAdmin)return;
+      if(!confirm('Yakin hapus media ini?'))return;
+      try{await CMS.db.collection('galeri').doc(id).delete();this.loadMedia();this.toast('🗑️ Media dihapus','');}
+      catch(e){this.toast('❌ '+e.message,'error');}
+    },
+
+    logout(){
       try{if(CMS.auth?.currentUser)await CMS.auth.signOut();}catch(e){}
       CMS.isAdmin=false;CMS.user=null;CMS.editMode=false;CMS.pendingChanges={};
       document.body.classList.remove('cms-editing');
