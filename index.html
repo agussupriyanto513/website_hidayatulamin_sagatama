@@ -6478,11 +6478,392 @@ setInterval(fetchPiPrice, 300000);
   /* ── Init ── */
   function init(){
     injectCSS();injectHTML();tagFields();setupAuth();
+    window._cmsSagatama = CMS;
+    window._cmsOpenIE = openIE;
     console.info('%c🛡️ CMS Sagatama v2.0 siap | Klik tombol biru kiri bawah untuk login admin','color:#d4a017;font-weight:bold;font-size:11px;');
   }
 
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>waitForFirebase(init));}
   else{waitForFirebase(init);}
+})();
+</script>
+
+<!-- ============================================================
+     CMS PATCH v3.0 — Lengkapi & Perbaiki Sistem CMS Sagatama
+     1. loadPublicContent() → semua pengunjung dapat konten terbaru
+     2. Tombol Edit inline muncul saat admin login
+     3. saveHero / savePengantar / dll update DOM dengan benar
+     4. Perbaikan minor: tagFields lebih luas, auto-reload konten
+     ============================================================ -->
+<script>
+(function cmsV3Patch() {
+  'use strict';
+
+  // ── Tunggu Firebase & CMS v2 siap ──────────────────────────
+  function whenReady(fn, n) {
+    n = n||0;
+    if (window.db && window.cmsUI) { fn(); return; }
+    if (n > 100) { console.warn('[CMSv3] Firebase atau cmsUI tidak siap'); return; }
+    setTimeout(()=>whenReady(fn, n+1), 100);
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  1. LOAD KONTEN PUBLIK — jalankan saat halaman dibuka,
+  //     tanpa perlu login. Semua konten dari cms_content Firestore
+  //     langsung mengisi elemen HTML yang punya data-cms-field.
+  // ════════════════════════════════════════════════════════════
+  function loadPublicContent() {
+    const db = window.db;
+    if (!db) return;
+    db.collection('cms_content').get().then(snap => {
+      snap.forEach(doc => {
+        const field = doc.id;
+        const val = doc.data()?.value;
+        if (!val) return;
+        // Update semua elemen dengan data-cms-field yang cocok
+        document.querySelectorAll('[data-cms-field="'+field+'"]').forEach(el => {
+          if (doc.data().type === 'html') el.innerHTML = val;
+          else el.textContent = val;
+        });
+        // Mapping khusus field → selector DOM
+        applyFieldToDOM(field, val);
+      });
+    }).catch(e => console.warn('[CMSv3] loadPublicContent:', e));
+  }
+
+  // Map field ke elemen DOM spesifik yang perlu diupdate
+  function applyFieldToDOM(field, val) {
+    const map = {
+      'hero_title':        () => { const el=document.querySelector('.hero-title'); if(el) el.innerHTML=val; },
+      'hero_subtitle':     () => { const el=document.querySelector('.hero-subtitle'); if(el) el.textContent=val; },
+      'hero_eyebrow':      () => { const el=document.querySelector('.hero-eyebrow'); if(el) el.textContent=val; },
+      'quote_text':        () => { const el=document.querySelector('.quote-text'); if(el) el.textContent=val; },
+      'quote_author':      () => { const el=document.querySelector('.quote-author'); if(el) el.textContent=val; },
+      'quote_label':       () => { const el=document.querySelector('.quote-label'); if(el) el.textContent=val; },
+      'visi_text':         () => { document.querySelectorAll('[data-cms-field="visi_text"]').forEach(e=>e.textContent=val); },
+      'misi_text':         () => { document.querySelectorAll('[data-cms-field="misi_text"]').forEach(e=>e.textContent=val); },
+      'pimpinan_nama':     () => { const el=document.querySelector('.pengantar-box strong'); if(el) el.textContent=val; },
+      'pimpinan_jabatan':  () => { const el=document.querySelector('.pengantar-box small'); if(el) el.textContent=val; },
+      'pengantar_p1':      () => { const els=document.querySelectorAll('.pengantar-text p'); if(els[0]) els[0].textContent=val; },
+      'pengantar_p2':      () => { const els=document.querySelectorAll('.pengantar-text p'); if(els[1]) els[1].textContent=val; },
+      'wasiat_text':       () => { const el=document.querySelector('.wasiat-highlight p'); if(el) el.textContent=val; },
+      'identity_title':    () => { const el=document.querySelector('.identity-text h2'); if(el) el.textContent=val; },
+      'identity_desc':     () => { const el=document.querySelector('.identity-text p'); if(el) el.textContent=val; },
+      'marquee_text':      () => {
+        const mq = document.querySelector('.marquee-inner marquee');
+        if (mq) {
+          const items = val.split('|').map(t=>t.trim()).filter(Boolean);
+          mq.innerHTML = items.map(t=>`&nbsp;&nbsp;⬡ ${t}&nbsp;&nbsp;`).join('|');
+        }
+      },
+    };
+    if (map[field]) { try { map[field](); } catch(e) {} }
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  2. TOMBOL EDIT INLINE — muncul saat admin login, hover di
+  //     elemen konten. Admin klik → inline editor terbuka.
+  // ════════════════════════════════════════════════════════════
+  const EDIT_BTN_FIELDS = [
+    // [selector, field, label, type]
+    ['.hero-title',                     'hero_title',        'Judul Hero',            'html'],
+    ['.hero-subtitle',                  'hero_subtitle',     'Subtitle Hero',         'text'],
+    ['.hero-eyebrow',                   'hero_eyebrow',      'Badge Eyebrow',         'text'],
+    ['.quote-text',                     'quote_text',        'Teks Kutipan',          'text'],
+    ['.quote-author',                   'quote_author',      'Penulis Kutipan',       'text'],
+    ['.pengantar-text h3',              'pengantar_h',       'Heading Pengantar',     'text'],
+    ['.pengantar-text p:first-of-type', 'pengantar_p1',      'Paragraf 1 Pengantar',  'text'],
+    ['.pengantar-text p:last-of-type',  'pengantar_p2',      'Paragraf 2 Pengantar',  'text'],
+    ['.wasiat-highlight p',             'wasiat_text',       'Wasiat Pimpinan',       'text'],
+    ['.identity-text h2',               'identity_title',    'Judul Identitas',       'text'],
+    ['.identity-text p',                'identity_desc',     'Deskripsi Identitas',   'text'],
+    ['#psb .section-title',             'psb_title',         'Judul PSB',             'text'],
+    ['#psb .section-desc',              'psb_desc',          'Deskripsi PSB',         'text'],
+    ['.pilar-3-card:first-child .pilar-3-title', 'p1_title', 'Judul Pilar 1',        'text'],
+    ['.pilar-3-card:first-child .pilar-3-desc',  'p1_desc',  'Deskripsi Pilar 1',    'text'],
+    ['.pilar-3-card:nth-child(2) .pilar-3-title','p2_title', 'Judul Pilar 2',        'text'],
+    ['.pilar-3-card:nth-child(2) .pilar-3-desc', 'p2_desc',  'Deskripsi Pilar 2',    'text'],
+    ['.pilar-3-card:last-child .pilar-3-title',  'p3_title', 'Judul Pilar 3',        'text'],
+    ['.pilar-3-card:last-child .pilar-3-desc',   'p3_desc',  'Deskripsi Pilar 3',    'text'],
+  ];
+
+  function injectEditButtons() {
+    EDIT_BTN_FIELDS.forEach(([sel, field, label, type]) => {
+      try {
+        const el = document.querySelector(sel);
+        if (!el || el.hasAttribute('data-cms-field')) return;
+        el.setAttribute('data-cms-field', field);
+        el.setAttribute('data-cms-label', label);
+        el.setAttribute('data-cms-type', type||'text');
+      } catch(e) {}
+    });
+    // Re-attach listeners on all cms-field elements
+    document.querySelectorAll('[data-cms-field]').forEach(el => {
+      if (!el._cmsV3) {
+        el._cmsV3 = true;
+        el.addEventListener('click', function(e) {
+          const CMS = window._cmsSagatama;
+          if (!CMS || !CMS.editMode) return;
+          e.stopPropagation();
+          // Trigger openIE via cmsUI if available
+          if (window.cmsUI && typeof window._cmsOpenIE === 'function') window._cmsOpenIE(this);
+        });
+      }
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  3. PERBAIKAN saveHero, savePengantar, saveVisiMisi dll
+  //     Patch cmsUI functions to also update DOM correctly
+  // ════════════════════════════════════════════════════════════
+  function patchCmsUI() {
+    const ui = window.cmsUI;
+    if (!ui) return;
+
+    // Override saveHero
+    const origSaveHero = ui.saveHero.bind(ui);
+    ui.saveHero = async function() {
+      const title = document.getElementById('cf-hero-title')?.value?.trim();
+      const sub   = document.getElementById('cf-hero-sub')?.value?.trim();
+      const eye   = document.getElementById('cf-hero-eye')?.value?.trim();
+      await origSaveHero();
+      // Force DOM update
+      if (title) { document.querySelectorAll('.hero-title').forEach(el => el.innerHTML = title); }
+      if (sub)   { document.querySelectorAll('.hero-subtitle').forEach(el => el.textContent = sub); }
+      if (eye)   { document.querySelectorAll('.hero-eyebrow').forEach(el => el.textContent = eye); }
+    };
+
+    // Override savePengantar
+    const origSavePengantar = ui.savePengantar.bind(ui);
+    ui.savePengantar = async function() {
+      const nama = document.getElementById('cf-pnama')?.value?.trim();
+      const jab  = document.getElementById('cf-pjabatan')?.value?.trim();
+      const p1   = document.getElementById('cf-pp1')?.value?.trim();
+      const p2   = document.getElementById('cf-pp2')?.value?.trim();
+      await origSavePengantar();
+      if (nama) { document.querySelectorAll('.pengantar-box strong').forEach(el => el.textContent = nama); }
+      if (jab)  { document.querySelectorAll('.pengantar-box small').forEach(el => el.textContent = jab); }
+      if (p1) {
+        const els = document.querySelectorAll('.pengantar-text p');
+        if (els[0]) els[0].textContent = p1;
+      }
+      if (p2) {
+        const els = document.querySelectorAll('.pengantar-text p');
+        if (els[1]) els[1].textContent = p2;
+      }
+    };
+
+    // Override saveVisiMisi
+    const origSaveVM = ui.saveVisiMisi.bind(ui);
+    ui.saveVisiMisi = async function() {
+      const visi = document.getElementById('cf-visi')?.value?.trim();
+      const misi = document.getElementById('cf-misi')?.value?.trim();
+      await origSaveVM();
+      if (visi) { document.querySelectorAll('[data-cms-field="visi_text"]').forEach(el => el.textContent = visi); }
+      if (misi) { document.querySelectorAll('[data-cms-field="misi_text"]').forEach(el => el.textContent = misi); }
+    };
+
+    // Override saveWasiat
+    const origSaveWasiat = ui.saveWasiat.bind(ui);
+    ui.saveWasiat = async function() {
+      const v = document.getElementById('cf-was')?.value?.trim();
+      await origSaveWasiat();
+      if (v) { document.querySelectorAll('.wasiat-highlight p').forEach(el => el.textContent = v); }
+    };
+
+    // Override saveQuote
+    const origSaveQuote = ui.saveQuote.bind(ui);
+    ui.saveQuote = async function() {
+      const qt = document.getElementById('cf-qt')?.value?.trim();
+      const qa = document.getElementById('cf-qa')?.value?.trim();
+      await origSaveQuote();
+      if (qt) { document.querySelectorAll('.quote-text').forEach(el => el.textContent = qt); }
+      if (qa) { document.querySelectorAll('.quote-author').forEach(el => el.textContent = qa); }
+    };
+
+    // Patch applyIE to also handle innerHTML correctly
+    const origApplyIE = ui.applyIE.bind(ui);
+    ui.applyIE = function() {
+      const el = window._cmsSagatama?.activeEditor;
+      const inp = document.getElementById('cms-ieinput');
+      if (el && inp) {
+        const type = el.getAttribute('data-cms-type');
+        if (type === 'html') el.innerHTML = inp.value;
+      }
+      origApplyIE();
+    };
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  4. ADMIN OVERLAY EDIT BUTTONS — tombol ✏️ melayang di
+  //     setiap section konten saat mode edit aktif
+  // ════════════════════════════════════════════════════════════
+  const SECTION_EDIT_BTNS = [
+    { selector: '.hero',        label: '✏️ Edit Hero',       panel: 'hero',     icon: 'fa-home' },
+    { selector: '#pengantar',   label: '✏️ Edit Pengantar',  panel: 'pimpinan', icon: 'fa-user-tie' },
+    { selector: '#visi-misi',   label: '✏️ Edit Visi & Misi',panel: 'vm',       icon: 'fa-star' },
+    { selector: '#wasiat',      label: '✏️ Edit Wasiat',     panel: 'wasiat',   icon: 'fa-mosque' },
+    { selector: '.news-grid',   label: '✏️ Kelola Berita',   panel: 'warta',    icon: 'fa-newspaper' },
+    { selector: '#donasi',      label: '✏️ Edit Statistik',  panel: 'stats',    icon: 'fa-chart-pie' },
+    { selector: '#pembangunan', label: '✏️ Edit Progress',   panel: 'prog',     icon: 'fa-building' },
+  ];
+
+  function injectSectionOverlays() {
+    SECTION_EDIT_BTNS.forEach(({ selector, label, panel }) => {
+      try {
+        const el = document.querySelector(selector);
+        if (!el || el.querySelector('.cms-section-editbtn')) return;
+        el.style.position = el.style.position || 'relative';
+        const btn = document.createElement('button');
+        btn.className = 'cms-section-editbtn';
+        btn.textContent = label;
+        btn.setAttribute('data-panel', panel);
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (window.cmsUI) {
+            window.cmsUI.openPanel();
+            setTimeout(() => window.cmsUI.ctgl(panel), 350);
+          }
+        });
+        el.appendChild(btn);
+      } catch(e) {}
+    });
+  }
+
+  // CSS untuk tombol edit section overlay
+  function injectPatchCSS() {
+    const s = document.createElement('style');
+    s.id = 'cms-v3-styles';
+    s.textContent = `
+      .cms-section-editbtn {
+        display: none;
+        position: absolute;
+        top: 16px; right: 16px;
+        z-index: 8000;
+        background: linear-gradient(135deg,#d4a017,#f0c842);
+        color: #070d1a;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 0.78em;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(212,160,23,0.5);
+        transition: 0.2s;
+        white-space: nowrap;
+      }
+      .cms-section-editbtn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 24px rgba(212,160,23,0.7);
+      }
+      body.cms-editing .cms-section-editbtn {
+        display: block;
+        animation: cms-btn-pop 0.3s ease;
+      }
+      @keyframes cms-btn-pop {
+        from { opacity:0; transform:scale(0.8); }
+        to   { opacity:1; transform:scale(1); }
+      }
+      /* Highlight section border saat edit mode */
+      body.cms-editing [data-cms-field]:hover {
+        outline: 2px dashed rgba(212,160,23,0.8) !important;
+        outline-offset: 3px;
+        cursor: pointer !important;
+        border-radius: 4px;
+      }
+      body.cms-editing [data-cms-field]:hover::after {
+        content: '✏️ ' attr(data-cms-label);
+        position: absolute;
+        top: -28px; left: 0;
+        background: #d4a017;
+        color: #070d1a;
+        font-size: 0.65em;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+        z-index: 9999;
+        pointer-events: none;
+        font-family: 'DM Sans',sans-serif;
+      }
+      /* Toast notif publik */
+      #cms-pub-toast {
+        position: fixed;
+        bottom: 90px; left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #0f3460;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-family: 'DM Sans',sans-serif;
+        font-size: 0.82em;
+        font-weight: 600;
+        z-index: 99999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s, transform 0.3s;
+        border: 1px solid rgba(212,160,23,0.3);
+        white-space: nowrap;
+      }
+      #cms-pub-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  5. FIX: Expose CMS state supaya patch bisa akses
+  // ════════════════════════════════════════════════════════════
+  function exposeCMSState() {
+    // Cari CMS state dari closure CMS v2 via cmsUI
+    // Override _doAfterLogin untuk hook ke patch
+    if (window.cmsUI && !window.cmsUI._v3Patched) {
+      window.cmsUI._v3Patched = true;
+      const origDoAfterLogin = window.cmsUI._doAfterLogin.bind(window.cmsUI);
+      window.cmsUI._doAfterLogin = function() {
+        origDoAfterLogin();
+        // Setelah admin login, inject section overlay buttons
+        setTimeout(injectSectionOverlays, 500);
+        setTimeout(injectEditButtons, 600);
+      };
+      const origLogout = window.cmsUI.logout.bind(window.cmsUI);
+      window.cmsUI.logout = async function() {
+        await origLogout();
+        // Sembunyikan semua tombol edit
+        document.querySelectorAll('.cms-section-editbtn').forEach(b => b.style.display = 'none');
+      };
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  6. PUBLIC CONTENT LOAD — tanpa login, langsung setelah Firebase siap
+  // ════════════════════════════════════════════════════════════
+  function waitFirebase(fn, n) {
+    n = n||0;
+    if (window.db) { fn(); return; }
+    if (n > 80) return;
+    setTimeout(()=>waitFirebase(fn,n+1), 100);
+  }
+
+  // Jalankan loadPublicContent segera setelah Firebase siap
+  waitFirebase(function() {
+    loadPublicContent();
+    // Re-load setiap 5 menit untuk konten terbaru
+    setInterval(loadPublicContent, 300000);
+  });
+
+  // Jalankan patch setelah CMS v2 siap
+  whenReady(function() {
+    injectPatchCSS();
+    injectEditButtons();
+    patchCmsUI();
+    exposeCMSState();
+    console.info('%c🔧 CMS Sagatama v3 Patch aktif — konten publik ter-load otomatis dari Firestore', 'color:#d4a017;font-size:11px;font-weight:bold;');
+  });
+
 })();
 </script>
 </body>
