@@ -267,20 +267,21 @@
         }
         .drawer-overlay.open { display: block; }
 
-        /* ── MOBILE DRAWER (slide from right) ── */
+        /* ── SIDEBAR DRAWER (slide from left) ── */
         .mobile-menu {
             position: fixed;
-            top: 0; right: -320px;
-            width: 300px; height: 100%;
+            top: 0; left: -320px; right: auto;
+            width: min(85vw, 300px); height: 100%;
             background: #070d1a;
             z-index: 1099;
             padding: 0;
-            border-left: 1px solid rgba(212,160,23,0.2);
+            border-right: 1px solid rgba(212,160,23,0.2);
+            border-left: none;
             overflow-y: auto;
-            transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
-            box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+            transition: left 0.35s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 10px 0 40px rgba(0,0,0,0.5);
         }
-        .mobile-menu.open { right: 0; }
+        .mobile-menu.open { left: 0; }
 
         /* Drawer header */
         .drawer-header {
@@ -288,6 +289,7 @@
             padding: 18px 20px;
             border-bottom: 1px solid rgba(212,160,23,0.2);
             background: rgba(15,52,96,0.3);
+            position: sticky; top: 0; z-index: 2;
         }
         .drawer-logo {
             font-family: 'Cinzel', serif; font-weight: 900;
@@ -295,9 +297,9 @@
         }
         .drawer-close {
             background: rgba(255,255,255,0.07); border: none; color: rgba(255,255,255,0.6);
-            width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
-            font-size: 0.9em; display: flex; align-items: center; justify-content: center;
-            transition: 0.2s;
+            width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+            font-size: 1em; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; touch-action: manipulation;
         }
         .drawer-close:hover { background: rgba(212,160,23,0.2); color: var(--accent); }
 
@@ -305,11 +307,12 @@
         .mobile-menu-item { border-bottom: 1px solid rgba(255,255,255,0.05); }
         .mobile-menu-toggle {
             width: 100%; background: none; border: none;
-            color: var(--white); padding: 15px 20px;
-            text-align: left; font-size: 0.88em; font-weight: 600;
+            color: var(--white); padding: 16px 20px;
+            text-align: left; font-size: 0.9em; font-weight: 600;
             font-family: 'DM Sans', sans-serif;
             display: flex; justify-content: space-between; align-items: center;
             letter-spacing: 0.3px; transition: background 0.2s;
+            min-height: 52px; touch-action: manipulation;
         }
         .mobile-menu-toggle:hover { background: rgba(212,160,23,0.06); }
         .mobile-menu-toggle i.fa-chevron-down { color: var(--accent); font-size: 0.8em; transition: transform 0.3s; }
@@ -319,11 +322,21 @@
         .mobile-submenu a {
             display: flex; align-items: center; gap: 10px;
             color: rgba(255,255,255,0.65); text-decoration: none;
-            padding: 11px 20px 11px 30px; font-size: 0.83em;
-            border-left: 2px solid transparent;
-            transition: 0.2s;
+            padding: 13px 20px 13px 32px; font-size: 0.84em;
+            border-left: 3px solid transparent;
+            transition: 0.2s; min-height: 46px; touch-action: manipulation;
         }
         .mobile-submenu a:hover { color: var(--accent); border-left-color: var(--accent); background: rgba(212,160,23,0.05); }
+        /* Menu langsung (tanpa dropdown) */
+        .mobile-menu-direct {
+            display: flex; align-items: center; gap: 12px;
+            color: var(--white); text-decoration: none;
+            padding: 16px 20px; font-size: 0.9em; font-weight: 600;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s; min-height: 52px; touch-action: manipulation;
+        }
+        .mobile-menu-direct:hover { background: rgba(212,160,23,0.06); color: var(--accent); }
+        .mobile-menu-direct i { color: rgba(255,255,255,0.5); width: 20px; text-align: center; font-size: 0.9em; }
 
         /* ── BOTTOM NAVIGATION BAR (mobile) ── */
         .bottom-nav {
@@ -1508,7 +1521,7 @@
         }
         @media (max-width: 768px) {
             .nav-desktop { display: none; }
-            .hamburger { display: none; }  /* bottom nav handles menu */
+            .hamburger { display: none; }  /* shown via mobile override below */
             .bottom-nav { display: block; }
             /* Push page content up from bottom nav */
             body { padding-bottom: 64px; }
@@ -1692,18 +1705,16 @@
         /* ── NAVBAR Mobile ── */
         @media (max-width: 768px) {
             nav { height: 58px; }
-            .nav-container { padding: 0 14px; gap: 8px; }
+            .nav-container { padding: 0 14px; gap: 8px; justify-content: space-between; }
             .logo-icon { width: 38px; height: 38px; font-size: 0.85em; display: flex !important; flex-shrink: 0; }
-            .logo-text .name { font-size: 0.75em; }
+            .logo-text .name { font-size: 0.72em; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
             .logo-text .tagline { display: none; }
-            .logo-text { display: none; }
-            .logo-nav { gap: 0; }
             /* Sembunyikan live visitor di navbar mobile agar tidak sesak */
             .nav-container > div[title="Pengunjung aktif"] { display: none !important; }
-            /* Tombol SGT di nav: tampilkan hanya ikon */
+            /* Tombol SGT di nav: sembunyikan di mobile */
             .nav-sgt-btn { display: none; }
-            /* Live visitor badge hidden on mobile (shown in bottom nav area) */
-            /* Navbar clean: only logo on mobile */
+            /* Tampilkan hamburger di mobile untuk buka sidebar */
+            .hamburger { display: flex !important; margin-left: auto; flex-shrink: 0; }
         }
 
         /* ── MARQUEE BAR ── */
@@ -2524,7 +2535,15 @@
 <!-- MOBILE DRAWER MENU (slide from right) -->
 <div class="mobile-menu" id="mobileMenu">
     <div class="drawer-header">
-        <div class="drawer-logo">SAGATAMA</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:50%;border:2px solid var(--accent);background:white;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                <img src="logo_yayasan_sagatama.png" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-family:Cinzel,serif;font-weight:900;color:#d4a017;font-size:1em;\'>S</span>';">
+            </div>
+            <div>
+                <div class="drawer-logo" style="font-size:0.8em;letter-spacing:1.5px;">SAGATAMA</div>
+                <div style="color:rgba(255,255,255,0.35);font-size:0.6em;letter-spacing:0.5px;">Spiritual · Teknologi · Ekonomi</div>
+            </div>
+        </div>
         <button class="drawer-close" onclick="closeMobileMenu()"><i class="fas fa-times"></i></button>
     </div>
 
@@ -2539,6 +2558,14 @@
             <i class="fas fa-chevron-right" style="color:var(--accent);margin-left:auto;font-size:0.8em;"></i>
         </button>
     </div>
+
+    <!-- Beranda & link cepat -->
+    <a href="#" class="mobile-menu-direct" onclick="pindahHalaman('home'); closeMobileMenu(); return false;">
+        <i class="fas fa-home"></i> Beranda
+    </a>
+    <a href="#psb" class="mobile-menu-direct" onclick="pindahHalaman('home'); closeMobileMenu();">
+        <i class="fas fa-user-plus"></i> Daftar Santri (PSB)
+    </a>
 
     <div class="mobile-menu-item">
         <button class="mobile-menu-toggle" onclick="toggleMobileSub('sub-yayasan', this)">
