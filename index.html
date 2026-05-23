@@ -1713,7 +1713,10 @@
             .nav-sgt-btn { display: none; }
         }
 
-        /* ══ LAPTOP (769–1023px): sidebar menu, sembunyikan top dropdown ══ */
+        /* NAV DESKTOP — default flex untuk >=1024px */
+        .nav-desktop { display: flex; gap: 4px; align-items: center; flex-shrink: 1; flex: 1; justify-content: flex-end; overflow: visible; }
+
+                /* ══ LAPTOP (769–1023px): sidebar menu, sembunyikan top dropdown ══ */
         @media (min-width: 769px) and (max-width: 1023px) {
             .nav-desktop { display: none !important; }
             .hamburger {
@@ -2451,7 +2454,7 @@
         </a>
 
         <!-- Desktop Nav -->
-        <div class="nav-desktop" style="display:flex;gap:4px;align-items:center;flex-shrink:1;flex:1;justify-content:flex-end;overflow:visible;">
+        <div class="nav-desktop" style="gap:4px;align-items:center;flex-shrink:1;flex:1;justify-content:flex-end;overflow:visible;">
 
 
 
