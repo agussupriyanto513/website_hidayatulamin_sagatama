@@ -6911,42 +6911,59 @@ setInterval(fetchPiPrice, 300000);
     },
 
     async _uploadFileToStorage(file, path){
-      // Karena Firebase Storage gratis (Spark plan) tidak mendukung upload dari domain eksternal,
-      // kita selalu pakai base64 → simpan di Firestore sebagai data URI.
-      // Batas: ~800KB setelah base64 encoding (~600KB file asli). Untuk foto profil ini cukup.
-      const MAX = 800 * 1024; // 800KB
-      if(file.size > MAX){
-        // Kompres otomatis lewat canvas sebelum encode
-        return new Promise((res, rej) => {
-          const img = new Image();
-          const url = URL.createObjectURL(file);
-          img.onload = () => {
-            URL.revokeObjectURL(url);
-            const canvas = document.createElement('canvas');
-            let w = img.width, h = img.height;
-            // Resize proporsional max 800x800
-            const maxDim = 800;
-            if(w > maxDim || h > maxDim){
-              if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
-              else { w = Math.round(w * maxDim / h); h = maxDim; }
-            }
-            canvas.width = w; canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            // Kompres ke JPEG quality 0.75
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-            res(dataUrl);
-          };
-          img.onerror = () => rej(new Error('Gagal membaca gambar'));
-          img.src = url;
-        });
-      }
-      // File kecil: langsung encode base64
+      // ── TANPA Firebase Storage ──
+      // Semua gambar dikompres via Canvas → base64 JPEG → simpan ke Firestore.
+      // Target: hasil base64 < 700KB agar aman masuk dokumen Firestore (batas 1MB).
+      const TARGET_B64 = 700 * 1024; // 700KB karakter base64
       return new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = e => res(e.target.result);
-        r.onerror = () => rej(new Error('Gagal membaca file'));
-        r.readAsDataURL(file);
+        const img = new Image();
+        const objUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(objUrl);
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          // Mulai dari maxDim 1024, kita turunkan jika masih besar
+          let maxDim = 1024;
+          const resize = (dim) => {
+            let rw = w, rh = h;
+            if(rw > dim || rh > dim){
+              if(rw > rh){ rh = Math.round(rh * dim / rw); rw = dim; }
+              else { rw = Math.round(rw * dim / rh); rh = dim; }
+            }
+            canvas.width = rw; canvas.height = rh;
+            canvas.getContext('2d').clearRect(0,0,rw,rh);
+            canvas.getContext('2d').drawImage(img, 0, 0, rw, rh);
+          };
+          // Coba kompresi bertahap: quality 0.82 → 0.65 → 0.50, maxDim 1024 → 768 → 512
+          const attempts = [
+            {dim:1024, q:0.82},
+            {dim:900,  q:0.75},
+            {dim:768,  q:0.68},
+            {dim:640,  q:0.60},
+            {dim:512,  q:0.52},
+          ];
+          let dataUrl = '';
+          for(const a of attempts){
+            resize(a.dim);
+            dataUrl = canvas.toDataURL('image/jpeg', a.q);
+            if(dataUrl.length < TARGET_B64) break;
+          }
+          if(dataUrl.length >= TARGET_B64 * 1.5){
+            // Fallback ekstrem
+            resize(400);
+            dataUrl = canvas.toDataURL('image/jpeg', 0.45);
+          }
+          if(!dataUrl || dataUrl === 'data:,'){
+            rej(new Error('Gagal mengompresi gambar. Coba gambar lain.'));
+          } else {
+            res(dataUrl);
+          }
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objUrl);
+          rej(new Error('Gagal membaca gambar. Pastikan file adalah JPG/PNG/WebP.'));
+        };
+        img.src = objUrl;
       });
     },
 
@@ -7086,25 +7103,44 @@ setInterval(fetchPiPrice, 300000);
       const kategori=document.getElementById('cms-upload-kategori')?.value||'umum';
       const prog=document.getElementById('cms-upload-main-progress');
       const btn=document.getElementById('cms-do-upload-btn');
-      prog.style.display='block';if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Mengupload...';}
-      let success=0,fail=0;
+      prog.style.display='block';prog.style.background='rgba(212,160,23,0.1)';prog.style.color='#d4a017';
+      if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Mengupload...';}
+      let success=0,fail=0,lastErr='';
       for(let i=0;i<files.length;i++){
         const f=files[i];
-        prog.textContent=`⏳ Mengupload ${i+1}/${files.length}: ${f.name}`;
+        prog.textContent=`⏳ Memproses ${i+1}/${files.length}: ${f.name} (${Math.round(f.size/1024)}KB)...`;
         try{
-          const ext=f.name.split('.').pop();
-          const path=`galeri/${kategori}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-          const url=await this._uploadFileToStorage(f,path);
-          await CMS.db.collection('galeri').add({url,caption,kategori,nama:f.name,size:f.size,uploadedAt:firebase.firestore.FieldValue.serverTimestamp(),uploadedBy:CMS.user?.email||'admin',tipe:'foto'});
+          const url=await this._uploadFileToStorage(f,'');
+          const sizeKB=Math.round(url.length*0.75/1024);
+          prog.textContent=`⏳ Menyimpan ke Firestore (${sizeKB}KB)...`;
+          await CMS.db.collection('galeri').add({
+            url,caption,kategori,
+            nama:f.name,size:f.size,
+            uploadedAt:firebase.firestore.FieldValue.serverTimestamp(),
+            uploadedBy:CMS.user?.email||'admin',
+            tipe:'foto'
+          });
           success++;
-        }catch(e){fail++;console.warn('Upload gagal:',f.name,e);}
+        }catch(e){
+          fail++;
+          lastErr=e.message;
+          console.warn('[Upload Foto] Gagal:',f.name,e);
+        }
       }
-      prog.textContent=`✅ ${success} foto berhasil diupload${fail?`, ${fail} gagal`:''}!`;
-      window._cmsUploadFiles=[];
-      if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-upload"></i> Upload Sekarang';}
-      this.toast(`✅ ${success} foto berhasil ditambahkan ke galeri!`,'success');
-      setTimeout(()=>this.closeUploadModal(),1500);
-      this.loadMedia();
+      if(fail>0){
+        prog.style.background='rgba(239,68,68,0.12)';prog.style.color='#fca5a5';
+        prog.textContent=`⚠️ ${success} berhasil, ${fail} gagal. Error: ${lastErr}`;
+        if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-upload"></i> Upload Sekarang';}
+        this.toast(`⚠️ ${success} berhasil, ${fail} gagal: ${lastErr}`,'error');
+      } else {
+        prog.style.background='rgba(16,185,129,0.12)';prog.style.color='#6ee7b7';
+        prog.textContent=`✅ ${success} foto berhasil diupload!`;
+        window._cmsUploadFiles=[];
+        if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-upload"></i> Upload Sekarang';}
+        this.toast(`✅ ${success} foto berhasil ditambahkan ke galeri!`,'success');
+        setTimeout(()=>this.closeUploadModal(),1500);
+        this.loadMedia();
+      }
     },
 
     // Video
@@ -8402,50 +8438,6 @@ setInterval(fetchPiPrice, 300000);
 
     // ──────────────────────────────────────────────────────────
     //  PERBAIKAN UPLOAD FOTO GALERI (override doUploadFoto)
-    //  — Kompres lebih agresif supaya muat di Firestore (<900KB)
-    // ──────────────────────────────────────────────────────────
-    patchGaleriUpload(){
-      if(!window.cmsUI) return;
-      // Override _uploadFileToStorage supaya kompres agresif
-      window.cmsUI._uploadFileToStorage = async function(file, path){
-        const MAX_BYTES = 750 * 1024; // 750KB target setelah base64
-        // Untuk semua gambar, kompres via canvas
-        return new Promise((res, rej) => {
-          const img = new Image();
-          const url = URL.createObjectURL(file);
-          img.onload = () => {
-            URL.revokeObjectURL(url);
-            const canvas = document.createElement('canvas');
-            let w = img.width, h = img.height;
-            // Resize proporsional max 900px
-            const maxDim = 900;
-            if(w > maxDim || h > maxDim){
-              if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
-              else { w = Math.round(w * maxDim / h); h = maxDim; }
-            }
-            canvas.width = w; canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            // Mulai dari quality 0.82, turunkan hingga muat
-            let quality = 0.82;
-            let dataUrl = canvas.toDataURL('image/jpeg', quality);
-            while(dataUrl.length * 0.75 > MAX_BYTES && quality > 0.3){
-              quality -= 0.08;
-              dataUrl = canvas.toDataURL('image/jpeg', quality);
-            }
-            if(dataUrl.length * 0.75 > 900*1024){
-              rej(new Error('Gambar terlalu besar setelah kompresi. Gunakan gambar yang lebih kecil (< 2MB, < 3000px).'));
-            } else {
-              res(dataUrl);
-            }
-          };
-          img.onerror = () => {
-            URL.revokeObjectURL(url);
-            rej(new Error('Gagal membaca gambar'));
-          };
-          img.src = url;
-        });
-      };
-    }
   };
 
   // Expose ke global
@@ -8473,9 +8465,6 @@ setInterval(fetchPiPrice, 300000);
       window.cmsUI.deletePDF    = (id)=> V3.deletePDF(id);
       window.cmsUI.handlePDFDrop    = (e)=> V3.handlePDFDrop(e);
       window.cmsUI.handlePDFSelect  = (i)=> V3.handlePDFSelect(i);
-
-      // Patch galeri upload
-      V3.patchGaleriUpload();
     }
   }
 
