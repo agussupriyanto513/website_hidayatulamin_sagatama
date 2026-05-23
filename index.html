@@ -1714,23 +1714,29 @@
             .nav-sgt-btn { display: none; }
         }
 
-        /* ══ NAV: hamburger selalu tampil di semua ukuran layar ══ */
-        /* Nav desktop (dropdown atas) — SELALU TERSEMBUNYI, diganti sidebar */
-        .nav-desktop { display: none !important; }
+        /* ══ NAV: hamburger hanya tampil di mobile/tablet, desktop pakai nav-desktop ══ */
 
-        /* Hamburger — SELALU TAMPIL */
-        .hamburger {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 5px;
-            flex-shrink: 0;
-            margin-left: auto;
+        /* Default: tampilkan nav desktop, sembunyikan hamburger */
+        .nav-desktop { display: flex !important; align-items: center; gap: 4px; }
+        .hamburger { display: none !important; }
+
+        /* Di tablet & mobile: sembunyikan nav desktop, tampilkan hamburger */
+        @media (max-width: 1023px) {
+            .nav-desktop { display: none !important; }
+            .hamburger {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 5px;
+                flex-shrink: 0;
+                margin-left: auto;
+            }
         }
-        .hamburger span { background: var(--white); }
 
-        /* Sembunyikan SGT btn dan visitor badge di navbar */
-        .nav-sgt-btn { display: none !important; }
-        .nav-container > div[title="Pengunjung aktif"] { display: none !important; }
+        /* Sembunyikan SGT btn dan visitor badge di navbar mobile */
+        @media (max-width: 1023px) {
+            .nav-sgt-btn { display: none !important; }
+            .nav-container > div[title="Pengunjung aktif"] { display: none !important; }
+        }
 
         /* Sidebar lebih lebar di layar besar */
         @media (min-width: 769px) {
@@ -2065,6 +2071,104 @@
             .logo-nav { flex-shrink: 0 !important; }
             .logo-text { display: none !important; }
         }
+
+        /* ══════════════════════════════════════════════════
+           PERBAIKAN TAMPILAN DESKTOP (laptop & layar besar)
+           ══════════════════════════════════════════════════ */
+
+        /* Sembunyikan bottom nav di desktop/laptop */
+        @media (min-width: 769px) {
+            .bottom-nav { display: none !important; }
+            body { padding-bottom: 0 !important; }
+        }
+
+        /* Hero — padding lebih seimbang di laptop */
+        @media (min-width: 1024px) {
+            .hero {
+                min-height: 90vh;
+                padding: 110px 40px 80px;
+            }
+            .hero-title {
+                font-size: clamp(3em, 5vw, 4.8em) !important;
+            }
+            .hero-subtitle {
+                font-size: 1.1em;
+                max-width: 650px;
+            }
+            .hero-stats {
+                max-width: 800px;
+            }
+        }
+
+        /* Container — padding konsisten di semua lebar desktop */
+        @media (min-width: 769px) {
+            .container { padding: 0 40px; }
+        }
+        @media (min-width: 1200px) {
+            .container { padding: 0 50px; }
+        }
+
+        /* Sections spacing di desktop */
+        @media (min-width: 1024px) {
+            .section { padding: 90px 0; }
+            .firebase-section { padding: 100px 0; }
+        }
+
+        /* Identity card di laptop */
+        @media (min-width: 769px) and (max-width: 1100px) {
+            .identity-card { gap: 40px; padding: 48px; }
+            .identity-num { font-size: 5.5em; }
+        }
+
+        /* Pilar 3 grid di viewport menengah */
+        @media (min-width: 769px) and (max-width: 1100px) {
+            .pilar-3-card { padding: 28px 22px; }
+            .pilar-3-title { font-size: 1.25em; }
+        }
+
+        /* Footer grid di laptop */
+        @media (min-width: 769px) and (max-width: 1100px) {
+            .footer-inner {
+                grid-template-columns: 2fr 1fr 1fr;
+                gap: 32px;
+            }
+        }
+
+        /* Portal stat grid — 4 kolom di desktop */
+        @media (min-width: 769px) {
+            .portal-stat-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        /* Grid di tablet */
+        @media (min-width: 769px) and (max-width: 1023px) {
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .akademik-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Grid di layar besar */
+        @media (min-width: 1024px) {
+            .grid-3 { grid-template-columns: repeat(3, 1fr); }
+            .grid-4 { grid-template-columns: repeat(4, 1fr); }
+            .akademik-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        /* WA float di desktop */
+        @media (min-width: 1024px) {
+            .wa-float { display: flex !important; }
+        }
+
+        /* Section title di laptop */
+        @media (min-width: 1024px) {
+            .section-title { font-size: clamp(1.8em, 2.5vw, 2.6em); }
+        }
+
+        /* Marquee bar di desktop */
+        @media (min-width: 769px) {
+            .marquee-bar { font-size: 0.82em; }
+            .marquee-inner { padding-left: 100px; }
+        }
+
     </style>
     <script>
     // ============================================================
