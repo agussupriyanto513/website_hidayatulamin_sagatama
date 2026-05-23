@@ -3234,7 +3234,7 @@
                     <div class="label"><i class="fas fa-mosque"></i> Wasiat Pimpinan Terkini</div>
                     <p>"Barang siapa yang menjaga dzikir pagi dan petang dengan istiqomah, niscaya Allah akan jaga hatinya dari kegelapan dunia yang semakin menyilaukan. Niatkan 513 dalam setiap hela nafas perjuangan kita."</p>
                 </div>
-                <div class="khutbah-list">
+                <div class="khutbah-list" id="khutbah-list-publik">
                     <div class="khutbah-item">
                         <i class="fas fa-file-pdf" style="color: #ef4444;"></i>
                         <div>
@@ -3289,7 +3289,7 @@
                     <div class="table-responsive">
                         <table>
                             <thead><tr><th>Waktu</th><th>Kegiatan</th><th>Tempat</th><th>Status</th></tr></thead>
-                            <tbody>
+                            <tbody id="jadwal-tbody-hari-biasa">
                                 <tr><td><strong>03:30</strong></td><td>Tahajud & Dzikir Malam (513)</td><td>Masjid Al-Amin</td><td><span class="badge badge-wajib">Wajib</span></td></tr>
                                 <tr><td><strong>04:30</strong></td><td>Subuh Berjamaah & Wirid Pagi</td><td>Masjid Al-Amin</td><td><span class="badge badge-wajib">Wajib</span></td></tr>
                                 <tr><td><strong>05:30</strong></td><td>Halaqoh Al-Qur'an / Tahfidz</td><td>Kelas Tahfidz</td><td><span class="badge badge-wajib">Wajib</span></td></tr>
@@ -3311,7 +3311,7 @@
                     <div class="table-responsive">
                         <table>
                             <thead><tr><th>Waktu</th><th>Kegiatan</th><th>Tempat</th><th>Status</th></tr></thead>
-                            <tbody>
+                            <tbody id="jadwal-tbody-jumat">
                                 <tr><td><strong>03:30</strong></td><td>Qiyamullail & Wirid 513</td><td>Masjid Al-Amin</td><td><span class="badge badge-wajib">Wajib</span></td></tr>
                                 <tr><td><strong>05:00</strong></td><td>Subuh & Pembacaan Surat Kahfi</td><td>Masjid Al-Amin</td><td><span class="badge badge-wajib">Wajib</span></td></tr>
                                 <tr><td><strong>07:00</strong></td><td>Kerja Bakti Lingkungan Pesantren</td><td>Seluruh Area</td><td><span class="badge badge-wajib">Wajib</span></td></tr>
@@ -3331,7 +3331,7 @@
                     <div class="table-responsive">
                         <table>
                             <thead><tr><th>Waktu</th><th>Kegiatan</th><th>Tempat</th><th>Status</th></tr></thead>
-                            <tbody>
+                            <tbody id="jadwal-tbody-ahad">
                                 <tr><td><strong>04:30</strong></td><td>Subuh Berjamaah</td><td>Masjid Al-Amin</td><td><span class="badge badge-wajib">Wajib</span></td></tr>
                                 <tr><td><strong>06:00</strong></td><td>Olahraga Pagi / Senam Santri</td><td>Lapangan</td><td><span class="badge badge-sunnah">Sunnah</span></td></tr>
                                 <tr><td><strong>08:00</strong></td><td>Open House & Kunjungan Tamu</td><td>Aula Tamu</td><td><span class="badge badge-optional">Terbuka</span></td></tr>
@@ -3346,7 +3346,7 @@
                 </div>
             </div>
             <div id="tab-mingguan" class="tab-content">
-                <div class="grid-2">
+                <div class="grid-2" id="jadwal-mingguan-grid">
                     <div class="card">
                         <div class="card-icon"><i class="fas fa-microchip"></i></div>
                         <h3>Senin — AI Lab Session</h3>
@@ -3436,7 +3436,7 @@
                 <h2 class="section-title">Santri Berprestasi</h2>
                 <div class="section-divider"></div>
             </div>
-            <div class="grid-4">
+            <div class="grid-4" id="prestasi-grid-publik">
                 <div class="prestasi-card">
                     <i class="fas fa-trophy"></i>
                     <h3>Juara 1 MTQ Tingkat Kecamatan</h3>
@@ -6162,6 +6162,41 @@ setInterval(fetchPiPrice, 300000);
           </div>
         </div>
 
+        <!-- ═══ JADWAL SANTRI ═══ -->
+        <div class="cms-slabel"><i class="fas fa-calendar-alt"></i> Jadwal & Kegiatan</div>
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('jadwal'); cmsUI.loadJadwal('hari-biasa')"><span><i class="ci fas fa-clock"></i>Jadwal Santri</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-jadwal">
+          <div style="padding:0 4px 12px;">
+            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+              <button onclick="cmsUI.loadJadwal('hari-biasa')" id="jdl-tab-hari-biasa" class="cms-mbtn a" style="flex:1;font-size:0.68em;padding:6px 4px;">Hari Biasa</button>
+              <button onclick="cmsUI.loadJadwal('jumat')" id="jdl-tab-jumat" class="cms-mbtn" style="flex:1;font-size:0.68em;padding:6px 4px;">Jumat</button>
+              <button onclick="cmsUI.loadJadwal('ahad')" id="jdl-tab-ahad" class="cms-mbtn" style="flex:1;font-size:0.68em;padding:6px 4px;">Ahad</button>
+              <button onclick="cmsUI.loadJadwal('mingguan')" id="jdl-tab-mingguan" class="cms-mbtn" style="flex:1;font-size:0.68em;padding:6px 4px;">Mingguan</button>
+            </div>
+            <button class="cms-mbtn a" onclick="cmsUI.openAddJadwal()" style="width:100%;margin-bottom:10px;"><i class="fas fa-plus"></i> Tambah Item Jadwal</button>
+            <div id="cms-jadwal-list"><div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:10px 0;">Pilih tab jadwal di atas...</div></div>
+          </div>
+        </div>
+
+        <!-- ═══ KEGIATAN & PRESTASI SANTRI ═══ -->
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('prestasi'); cmsUI.loadPrestasi()"><span><i class="ci fas fa-trophy"></i>Prestasi Santri</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-prestasi">
+          <div style="padding:0 4px 12px;">
+            <button class="cms-mbtn a" onclick="cmsUI.openAddPrestasi()" style="width:100%;margin-bottom:10px;"><i class="fas fa-plus"></i> Tambah Prestasi</button>
+            <div id="cms-prestasi-list"><div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:10px 0;">Klik panah di atas untuk memuat...</div></div>
+          </div>
+        </div>
+
+        <!-- ═══ UPLOAD PDF ═══ -->
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('pdf'); cmsUI.loadPDF()"><span><i class="ci fas fa-file-pdf"></i>Khutbah & Dokumen PDF</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-pdf">
+          <div style="padding:0 4px 12px;">
+            <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.71em;color:#6ee7b7;line-height:1.5;"><i class="fas fa-info-circle"></i> PDF disimpan ke Firestore sebagai base64 — <strong>tanpa Firebase Storage</strong>. Maks. 2MB per file (dikompres otomatis).</div>
+            <button class="cms-mbtn a" onclick="cmsUI.openAddPDF()" style="width:100%;margin-bottom:10px;"><i class="fas fa-upload"></i> Upload PDF Baru</button>
+            <div id="cms-pdf-list"><div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:10px 0;">Klik panah di atas untuk memuat...</div></div>
+          </div>
+        </div>
+
         <!-- Tambah Admin -->
         <button class="cms-ctgl" onclick="cmsUI.ctgl('addadmin')"><span><i class="ci fas fa-user-shield"></i>Tambah Admin</span><i class="fas fa-chevron-down arr"></i></button>
         <div class="cms-cpanel" id="cmsc-addadmin">
@@ -6179,7 +6214,7 @@ setInterval(fetchPiPrice, 300000);
           <i class="fas fa-sign-out-alt"></i>
           <div><div>Keluar dari CMS</div><span class="cms-abtn-desc">Logout dari akun admin</span></div>
         </button>
-        <div style="text-align:center;padding:16px 0 8px;color:rgba(255,255,255,.15);font-size:.62em;letter-spacing:1px;">CMS SAGATAMA v2.0 · Firebase Firestore</div>
+        <div style="text-align:center;padding:16px 0 8px;color:rgba(255,255,255,.15);font-size:.62em;letter-spacing:1px;">CMS SAGATAMA v3.0 · Firebase Firestore · No Storage</div>
       </div>
     </div>
 
@@ -7803,5 +7838,665 @@ setInterval(fetchPiPrice, 300000);
 
 })();
 </script>
-</body>
-</html>
+<!-- ════════════════════════════════════════════════════════════════
+     CMS SAGATAMA v3.0 EXTENSION
+     Fitur baru: Jadwal Santri, Prestasi, Upload PDF (tanpa Storage)
+     ════════════════════════════════════════════════════════════════ -->
+
+<!-- Modal: Tambah/Edit Jadwal -->
+<div id="cms-jadwal-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#070d1a;border:1px solid rgba(212,160,23,.3);border-radius:20px;width:100%;max-width:500px;padding:24px;font-family:'DM Sans',sans-serif;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="color:#d4a017;font-weight:800;font-size:.9em;"><i class="fas fa-clock" style="margin-right:8px;"></i><span id="jadwal-modal-title">Tambah Item Jadwal</span></div>
+      <button onclick="cmsUI.closeJadwalModal()" style="background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;"><i class="fas fa-times"></i></button>
+    </div>
+    <label class="cms-flbl">Hari / Kelompok</label>
+    <select class="cms-finp" id="jadwal-hari" style="width:100%;margin-bottom:8px;">
+      <option value="hari-biasa">Hari Biasa</option>
+      <option value="jumat">Hari Jumat</option>
+      <option value="ahad">Hari Ahad</option>
+      <option value="mingguan">Program Mingguan</option>
+    </select>
+    <label class="cms-flbl">Waktu</label>
+    <input class="cms-finp" id="jadwal-waktu" placeholder="Contoh: 03:30" style="width:100%;margin-bottom:8px;">
+    <label class="cms-flbl">Nama Kegiatan</label>
+    <input class="cms-finp" id="jadwal-kegiatan" placeholder="Tahajud & Dzikir Malam (513)" style="width:100%;margin-bottom:8px;">
+    <label class="cms-flbl">Tempat</label>
+    <input class="cms-finp" id="jadwal-tempat" placeholder="Masjid Al-Amin" style="width:100%;margin-bottom:8px;">
+    <label class="cms-flbl">Status</label>
+    <select class="cms-finp" id="jadwal-status" style="width:100%;margin-bottom:8px;">
+      <option value="wajib">Wajib</option>
+      <option value="sunnah">Sunnah</option>
+      <option value="optional">Mandiri / Pilihan</option>
+    </select>
+    <label class="cms-flbl">Urutan (angka kecil = tampil lebih awal)</label>
+    <input class="cms-finp" type="number" id="jadwal-urutan" placeholder="1" style="width:100%;margin-bottom:8px;">
+    <input type="hidden" id="jadwal-eid">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button onclick="cmsUI.closeJadwalModal()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
+      <button onclick="cmsUI.saveJadwal()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#d4a017,#f0c842);color:#070d1a;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-save"></i> Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Tambah/Edit Prestasi -->
+<div id="cms-prestasi-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#070d1a;border:1px solid rgba(16,185,129,.3);border-radius:20px;width:100%;max-width:500px;padding:24px;font-family:'DM Sans',sans-serif;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="color:#34d399;font-weight:800;font-size:.9em;"><i class="fas fa-trophy" style="margin-right:8px;"></i><span id="prestasi-modal-title">Tambah Prestasi</span></div>
+      <button onclick="cmsUI.closePrestasiModal()" style="background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;"><i class="fas fa-times"></i></button>
+    </div>
+    <label class="cms-flbl">Judul Prestasi</label>
+    <input class="cms-finp" id="prestasi-judul" placeholder="Juara 1 MTQ Tingkat Kecamatan" style="width:100%;margin-bottom:8px;">
+    <label class="cms-flbl">Nama Santri / Tim</label>
+    <input class="cms-finp" id="prestasi-nama" placeholder="Ahmad Fauzi — kategori Tartil Qur'an" style="width:100%;margin-bottom:8px;">
+    <label class="cms-flbl">Tanggal / Keterangan</label>
+    <input class="cms-finp" id="prestasi-tanggal" placeholder="Maret 2026" style="width:100%;margin-bottom:8px;">
+    <label class="cms-flbl">Ikon (Font Awesome class)</label>
+    <input class="cms-finp" id="prestasi-icon" placeholder="fa-trophy" style="width:100%;margin-bottom:8px;">
+    <div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-bottom:8px;">Contoh ikon: fa-trophy, fa-medal, fa-star, fa-robot, fa-book-quran, fa-mosque, fa-scroll</div>
+    <input type="hidden" id="prestasi-eid">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button onclick="cmsUI.closePrestasiModal()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
+      <button onclick="cmsUI.savePrestasi()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-save"></i> Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Upload PDF -->
+<div id="cms-pdf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#070d1a;border:1px solid rgba(239,68,68,.3);border-radius:20px;width:100%;max-width:500px;padding:24px;font-family:'DM Sans',sans-serif;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="color:#f87171;font-weight:800;font-size:.9em;"><i class="fas fa-file-pdf" style="margin-right:8px;"></i>Upload Dokumen PDF</div>
+      <button onclick="cmsUI.closePDFModal()" style="background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;"><i class="fas fa-times"></i></button>
+    </div>
+    <label class="cms-flbl">Judul Dokumen</label>
+    <input class="cms-finp" id="pdf-judul" placeholder="Khutbah: Teknologi dalam Perspektif Islam" style="width:100%;margin-bottom:8px;">
+    <label class="cms-flbl">Keterangan / Tanggal</label>
+    <input class="cms-finp" id="pdf-sub" placeholder="Jumat, 25 April 2026 · Masjid Al-Amin" style="width:100%;margin-bottom:8px;">
+    <label class="cms-flbl">Kategori</label>
+    <select class="cms-finp" id="pdf-kategori" style="width:100%;margin-bottom:8px;">
+      <option value="khutbah">Khutbah Jumat</option>
+      <option value="wasiat">Wasiat Pimpinan</option>
+      <option value="dokumen">Dokumen Yayasan</option>
+      <option value="materi">Materi Pengajian</option>
+    </select>
+    <label class="cms-flbl">File PDF (maks. 2MB)</label>
+    <div id="pdf-drop-area" style="width:100%;padding:20px;border:2px dashed rgba(239,68,68,0.4);border-radius:12px;text-align:center;cursor:pointer;margin-bottom:8px;background:rgba(239,68,68,0.05);transition:0.2s;" onclick="document.getElementById('pdf-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='#ef4444'" ondrop="cmsUI.handlePDFDrop(event)">
+      <i class="fas fa-file-pdf" style="font-size:2em;color:rgba(239,68,68,0.5);display:block;margin-bottom:8px;"></i>
+      <div id="pdf-drop-label" style="color:rgba(255,255,255,0.45);font-size:0.8em;">Klik atau drag & drop file PDF di sini</div>
+    </div>
+    <input type="file" id="pdf-file-input" accept="application/pdf" style="display:none;" onchange="cmsUI.handlePDFSelect(this)">
+    <div id="pdf-upload-progress" style="display:none;padding:10px 12px;border-radius:8px;font-size:0.76em;text-align:center;margin-bottom:8px;background:rgba(212,160,23,0.1);color:#d4a017;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button onclick="cmsUI.closePDFModal()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
+      <button onclick="cmsUI.doUploadPDF()" id="pdf-save-btn" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-upload"></i> Upload & Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  CMS SAGATAMA v3.0 — Jadwal, Prestasi, PDF (tanpa Firebase Storage)
+//  Semua data base64 disimpan ke Firestore langsung
+// ════════════════════════════════════════════════════════════════
+(function() {
+  'use strict';
+
+  const V3 = {
+    _activeJadwalTab: 'hari-biasa',
+
+    // ──────────────────────────────────────────────────────────
+    //  HELPERS
+    // ──────────────────────────────────────────────────────────
+    _db(){ return window.db || (window.CMS && window.CMS.db) || null; },
+    _isAdmin(){ return !!(window.CMS && window.CMS.isAdmin); },
+    _toast(msg, type=''){
+      if(window.cmsUI && window.cmsUI.toast){ window.cmsUI.toast(msg, type); return; }
+      console.log(msg);
+    },
+    _ts(){ return firebase.firestore.FieldValue.serverTimestamp(); },
+    _user(){ return window.CMS?.user?.email || 'admin'; },
+
+    // Kompres gambar/file besar → base64
+    async _fileToBase64(file, maxBytes=2*1024*1024){
+      if(file.size > maxBytes) throw new Error(`File terlalu besar. Maks. ${Math.round(maxBytes/1024/1024)}MB.`);
+      return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = () => rej(new Error('Gagal membaca file'));
+        r.readAsDataURL(file);
+      });
+    },
+
+    // Kompres gambar via canvas sebelum base64
+    async _compressImage(file, maxDim=800, quality=0.78){
+      return new Promise((res, rej) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          let w = img.width, h = img.height;
+          if(w > maxDim || h > maxDim){
+            if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+            else { w = Math.round(w * maxDim / h); h = maxDim; }
+          }
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          res(c.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => rej(new Error('Gagal membaca gambar'));
+        img.src = url;
+      });
+    },
+
+    // ──────────────────────────────────────────────────────────
+    //  JADWAL SANTRI
+    // ──────────────────────────────────────────────────────────
+    openAddJadwal(doc){
+      const m = document.getElementById('cms-jadwal-modal');
+      if(!m) return;
+      document.getElementById('jadwal-modal-title').textContent = doc ? 'Edit Item Jadwal' : 'Tambah Item Jadwal';
+      document.getElementById('jadwal-hari').value    = doc?.hari    || V3._activeJadwalTab;
+      document.getElementById('jadwal-waktu').value   = doc?.waktu   || '';
+      document.getElementById('jadwal-kegiatan').value= doc?.kegiatan|| '';
+      document.getElementById('jadwal-tempat').value  = doc?.tempat  || '';
+      document.getElementById('jadwal-status').value  = doc?.status  || 'wajib';
+      document.getElementById('jadwal-urutan').value  = doc?.urutan  !== undefined ? doc.urutan : '';
+      document.getElementById('jadwal-eid').value     = doc?.id      || '';
+      m.style.display = 'flex';
+    },
+    closeJadwalModal(){
+      document.getElementById('cms-jadwal-modal').style.display = 'none';
+    },
+
+    async saveJadwal(){
+      const db = V3._db(); if(!V3._isAdmin() || !db) return;
+      const hari     = document.getElementById('jadwal-hari').value;
+      const waktu    = document.getElementById('jadwal-waktu').value.trim();
+      const kegiatan = document.getElementById('jadwal-kegiatan').value.trim();
+      const tempat   = document.getElementById('jadwal-tempat').value.trim();
+      const status   = document.getElementById('jadwal-status').value;
+      const urutan   = parseInt(document.getElementById('jadwal-urutan').value)||0;
+      const eid      = document.getElementById('jadwal-eid').value;
+      if(!waktu || !kegiatan){ V3._toast('❌ Waktu dan kegiatan harus diisi','error'); return; }
+      const data = { hari, waktu, kegiatan, tempat, status, urutan,
+        updatedAt: V3._ts(), updatedBy: V3._user() };
+      try{
+        if(eid) await db.collection('jadwal').doc(eid).update(data);
+        else    await db.collection('jadwal').add({...data, createdAt: V3._ts()});
+        V3._toast('✅ Jadwal berhasil disimpan!','success');
+        V3.closeJadwalModal();
+        V3.loadJadwal(hari);
+        V3._renderJadwalPublic(hari);
+      }catch(e){ V3._toast('❌ '+e.message,'error'); }
+    },
+
+    async loadJadwal(hari){
+      const db = V3._db(); if(!V3._isAdmin() || !db) return;
+      V3._activeJadwalTab = hari;
+      // Highlight tab aktif
+      ['hari-biasa','jumat','ahad','mingguan'].forEach(t => {
+        const btn = document.getElementById('jdl-tab-'+t);
+        if(btn){ btn.className = t === hari ? 'cms-mbtn a' : 'cms-mbtn'; }
+      });
+      const el = document.getElementById('cms-jadwal-list'); if(!el) return;
+      el.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:.74em;text-align:center;padding:8px;">Memuat...</div>';
+      try{
+        let q = db.collection('jadwal').where('hari','==',hari).orderBy('urutan','asc');
+        const snap = await q.get();
+        if(snap.empty){
+          el.innerHTML = '<div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:12px;">Belum ada jadwal untuk tab ini. Klik "+ Tambah" untuk mulai.</div>';
+          return;
+        }
+        el.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const badgeColor = d.status==='wajib'?'#3b82f6': d.status==='sunnah'?'#f59e0b':'#6b7280';
+          const item = document.createElement('div');
+          item.style.cssText='background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;margin-bottom:8px;';
+          item.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+              <div style="flex:1;">
+                <span style="color:#d4a017;font-weight:800;font-size:0.85em;">${d.waktu||'—'}</span>
+                <span style="color:white;font-weight:600;font-size:0.82em;margin-left:8px;">${d.kegiatan||'—'}</span>
+              </div>
+              <div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px;">
+                <button onclick="cmsUI_v3.openAddJadwal({id:'${doc.id}',hari:'${d.hari}',waktu:'${(d.waktu||'').replace(/'/g,"\\'")}',kegiatan:'${(d.kegiatan||'').replace(/'/g,"\\'")}',tempat:'${(d.tempat||'').replace(/'/g,"\\'")}',status:'${d.status}',urutan:${d.urutan||0}})"
+                  style="padding:3px 8px;background:rgba(212,160,23,0.15);border:1px solid rgba(212,160,23,0.3);color:#d4a017;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-pen"></i></button>
+                <button onclick="cmsUI_v3.deleteJadwal('${doc.id}','${d.hari}')"
+                  style="padding:3px 8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+            <div style="font-size:0.7em;color:rgba(255,255,255,0.4);">📍 ${d.tempat||'—'} &nbsp;|&nbsp; <span style="color:${badgeColor};font-weight:700;">${d.status}</span></div>`;
+          el.appendChild(item);
+        });
+      }catch(e){
+        el.innerHTML = `<div style="color:#fca5a5;font-size:.74em;padding:8px;">Error: ${e.message}<br><small>Buat index di Firestore: koleksi 'jadwal', field 'hari' (asc) + 'urutan' (asc)</small></div>`;
+      }
+    },
+
+    async deleteJadwal(id, hari){
+      if(!V3._isAdmin()) return;
+      if(!confirm('Yakin hapus item jadwal ini?')) return;
+      try{
+        await V3._db().collection('jadwal').doc(id).delete();
+        V3._toast('🗑️ Jadwal dihapus','');
+        V3.loadJadwal(hari);
+        V3._renderJadwalPublic(hari);
+      }catch(e){ V3._toast('❌ '+e.message,'error'); }
+    },
+
+    // Render ulang jadwal publik setelah update
+    async _renderJadwalPublic(hari){
+      const db = V3._db(); if(!db) return;
+      if(hari === 'mingguan'){
+        // Mingguan: card-based — hapus custom, biarkan default
+        return;
+      }
+      const tbody = document.getElementById('jadwal-tbody-'+hari); if(!tbody) return;
+      try{
+        const snap = await db.collection('jadwal').where('hari','==',hari).orderBy('urutan','asc').get();
+        if(snap.empty) return;
+        tbody.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const badgeClass = d.status==='wajib'?'badge-wajib': d.status==='sunnah'?'badge-sunnah':'badge-optional';
+          const label = d.status==='wajib'?'Wajib': d.status==='sunnah'?'Sunnah':'Mandiri';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><strong>${d.waktu||'—'}</strong></td><td>${d.kegiatan||'—'}</td><td>${d.tempat||'—'}</td><td><span class="badge ${badgeClass}">${label}</span></td>`;
+          tbody.appendChild(tr);
+        });
+      }catch(e){ console.warn('[Jadwal Publik] Render gagal:', e); }
+    },
+
+    // ──────────────────────────────────────────────────────────
+    //  PRESTASI SANTRI
+    // ──────────────────────────────────────────────────────────
+    openAddPrestasi(doc){
+      const m = document.getElementById('cms-prestasi-modal'); if(!m) return;
+      document.getElementById('prestasi-modal-title').textContent = doc ? 'Edit Prestasi' : 'Tambah Prestasi';
+      document.getElementById('prestasi-judul').value  = doc?.judul  || '';
+      document.getElementById('prestasi-nama').value   = doc?.nama   || '';
+      document.getElementById('prestasi-tanggal').value= doc?.tanggal|| '';
+      document.getElementById('prestasi-icon').value   = doc?.icon   || 'fa-trophy';
+      document.getElementById('prestasi-eid').value    = doc?.id     || '';
+      m.style.display = 'flex';
+    },
+    closePrestasiModal(){ document.getElementById('cms-prestasi-modal').style.display='none'; },
+
+    async savePrestasi(){
+      const db = V3._db(); if(!V3._isAdmin()||!db) return;
+      const judul   = document.getElementById('prestasi-judul').value.trim();
+      const nama    = document.getElementById('prestasi-nama').value.trim();
+      const tanggal = document.getElementById('prestasi-tanggal').value.trim();
+      const icon    = document.getElementById('prestasi-icon').value.trim()||'fa-trophy';
+      const eid     = document.getElementById('prestasi-eid').value;
+      if(!judul){ V3._toast('❌ Judul prestasi harus diisi','error'); return; }
+      const data = { judul, nama, tanggal, icon, updatedAt: V3._ts(), updatedBy: V3._user() };
+      try{
+        if(eid) await db.collection('prestasi').doc(eid).update(data);
+        else    await db.collection('prestasi').add({...data, createdAt: V3._ts()});
+        V3._toast('✅ Prestasi berhasil disimpan!','success');
+        V3.closePrestasiModal();
+        V3.loadPrestasi();
+        V3._renderPrestasiPublic();
+      }catch(e){ V3._toast('❌ '+e.message,'error'); }
+    },
+
+    async loadPrestasi(){
+      const db = V3._db(); if(!V3._isAdmin()||!db) return;
+      const el = document.getElementById('cms-prestasi-list'); if(!el) return;
+      el.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:.74em;text-align:center;padding:8px;">Memuat...</div>';
+      try{
+        const snap = await db.collection('prestasi').orderBy('createdAt','desc').limit(20).get();
+        if(snap.empty){
+          el.innerHTML='<div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:12px;">Belum ada data. Klik "+ Tambah" untuk mulai.</div>';
+          return;
+        }
+        el.innerHTML='';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const item = document.createElement('div');
+          item.style.cssText='background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;';
+          item.innerHTML = `
+            <i class="fas ${d.icon||'fa-trophy'}" style="color:var(--success);font-size:1.3em;flex-shrink:0;"></i>
+            <div style="flex:1;min-width:0;">
+              <div style="color:white;font-weight:700;font-size:0.82em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.judul||'—'}</div>
+              <div style="color:rgba(255,255,255,0.4);font-size:0.7em;margin-top:2px;">${d.nama||''} ${d.tanggal?'· '+d.tanggal:''}</div>
+            </div>
+            <div style="display:flex;gap:4px;flex-shrink:0;">
+              <button onclick="cmsUI_v3.openAddPrestasi({id:'${doc.id}',judul:${JSON.stringify(d.judul||'')},nama:${JSON.stringify(d.nama||'')},tanggal:${JSON.stringify(d.tanggal||'')},icon:${JSON.stringify(d.icon||'fa-trophy')}})"
+                style="padding:3px 8px;background:rgba(212,160,23,0.15);border:1px solid rgba(212,160,23,0.3);color:#d4a017;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-pen"></i></button>
+              <button onclick="cmsUI_v3.deletePrestasi('${doc.id}')"
+                style="padding:3px 8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-trash"></i></button>
+            </div>`;
+          el.appendChild(item);
+        });
+      }catch(e){ el.innerHTML=`<div style="color:#fca5a5;font-size:.74em;padding:8px;">Error: ${e.message}</div>`; }
+    },
+
+    async deletePrestasi(id){
+      if(!V3._isAdmin()) return;
+      if(!confirm('Yakin hapus prestasi ini?')) return;
+      try{
+        await V3._db().collection('prestasi').doc(id).delete();
+        V3._toast('🗑️ Prestasi dihapus','');
+        V3.loadPrestasi();
+        V3._renderPrestasiPublic();
+      }catch(e){ V3._toast('❌ '+e.message,'error'); }
+    },
+
+    async _renderPrestasiPublic(){
+      const db = V3._db(); if(!db) return;
+      const grid = document.getElementById('prestasi-grid-publik'); if(!grid) return;
+      try{
+        const snap = await db.collection('prestasi').orderBy('createdAt','desc').limit(8).get();
+        if(snap.empty) return;
+        grid.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const card = document.createElement('div');
+          card.className = 'prestasi-card';
+          card.innerHTML = `<i class="fas ${d.icon||'fa-trophy'}"></i><h3>${d.judul||'—'}</h3><p>${d.nama||''} ${d.tanggal?'— '+d.tanggal:''}</p>`;
+          grid.appendChild(card);
+        });
+      }catch(e){ console.warn('[Prestasi Publik]', e); }
+    },
+
+    // ──────────────────────────────────────────────────────────
+    //  UPLOAD PDF — base64 ke Firestore
+    // ──────────────────────────────────────────────────────────
+    _pendingPDFFile: null,
+
+    openAddPDF(){
+      const m = document.getElementById('cms-pdf-modal'); if(!m) return;
+      document.getElementById('pdf-judul').value = '';
+      document.getElementById('pdf-sub').value = '';
+      document.getElementById('pdf-kategori').value = 'khutbah';
+      document.getElementById('pdf-drop-label').textContent = 'Klik atau drag & drop file PDF di sini';
+      document.getElementById('pdf-upload-progress').style.display='none';
+      document.getElementById('pdf-file-input').value='';
+      V3._pendingPDFFile = null;
+      m.style.display = 'flex';
+    },
+    closePDFModal(){ document.getElementById('cms-pdf-modal').style.display='none'; V3._pendingPDFFile=null; },
+
+    handlePDFDrop(e){
+      e.preventDefault();
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type==='application/pdf');
+      if(files.length) V3._setPDFFile(files[0]);
+    },
+    handlePDFSelect(input){
+      if(input.files[0]) V3._setPDFFile(input.files[0]);
+    },
+    _setPDFFile(file){
+      if(file.size > 2*1024*1024){ V3._toast('❌ File PDF maks. 2MB','error'); return; }
+      V3._pendingPDFFile = file;
+      document.getElementById('pdf-drop-label').textContent = '📎 ' + file.name + ' (' + Math.round(file.size/1024) + 'KB)';
+    },
+
+    async doUploadPDF(){
+      const db = V3._db(); if(!V3._isAdmin()||!db){ V3._toast('Harus login admin','error'); return; }
+      const judul    = document.getElementById('pdf-judul').value.trim();
+      const sub      = document.getElementById('pdf-sub').value.trim();
+      const kategori = document.getElementById('pdf-kategori').value;
+      if(!judul){ V3._toast('❌ Judul dokumen harus diisi','error'); return; }
+      if(!V3._pendingPDFFile){ V3._toast('❌ Pilih file PDF terlebih dahulu','error'); return; }
+      const prog = document.getElementById('pdf-upload-progress');
+      const btn  = document.getElementById('pdf-save-btn');
+      prog.style.display='block'; prog.style.background='rgba(212,160,23,0.1)'; prog.style.color='#d4a017';
+      prog.textContent='⏳ Mengonversi PDF ke base64...';
+      if(btn){ btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Uploading...'; }
+      try{
+        const base64 = await V3._fileToBase64(V3._pendingPDFFile, 2*1024*1024);
+        prog.textContent='⏳ Menyimpan ke Firestore...';
+        await db.collection('dokumen_pdf').add({
+          judul, sub, kategori,
+          fileName: V3._pendingPDFFile.name,
+          fileSize: V3._pendingPDFFile.size,
+          data: base64,
+          createdAt: V3._ts(),
+          uploadedBy: V3._user()
+        });
+        prog.style.background='rgba(16,185,129,0.12)'; prog.style.color='#6ee7b7';
+        prog.textContent='✅ PDF berhasil diupload dan disimpan!';
+        V3._toast('✅ PDF berhasil disimpan!','success');
+        setTimeout(()=>{ V3.closePDFModal(); V3.loadPDF(); V3._renderKhutbahPublic(); },1500);
+      }catch(e){
+        prog.style.background='rgba(239,68,68,0.12)'; prog.style.color='#fca5a5';
+        prog.textContent='❌ Gagal: '+e.message;
+        V3._toast('❌ Upload gagal: '+e.message,'error');
+      }finally{
+        if(btn){ btn.disabled=false; btn.innerHTML='<i class="fas fa-upload"></i> Upload & Simpan'; }
+        V3._pendingPDFFile=null;
+      }
+    },
+
+    async loadPDF(){
+      const db = V3._db(); if(!V3._isAdmin()||!db) return;
+      const el = document.getElementById('cms-pdf-list'); if(!el) return;
+      el.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:.74em;text-align:center;padding:8px;">Memuat...</div>';
+      try{
+        const snap = await db.collection('dokumen_pdf').orderBy('createdAt','desc').limit(20).get();
+        if(snap.empty){
+          el.innerHTML='<div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:12px;">Belum ada dokumen. Upload PDF baru di atas.</div>';
+          return;
+        }
+        el.innerHTML='';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const kb = Math.round((d.fileSize||0)/1024);
+          const item = document.createElement('div');
+          item.style.cssText='background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;margin-bottom:8px;';
+          item.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-file-pdf" style="color:#f87171;font-size:1.3em;flex-shrink:0;"></i>
+              <div style="flex:1;min-width:0;">
+                <div style="color:white;font-weight:700;font-size:0.82em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.judul||'—'}</div>
+                <div style="color:rgba(255,255,255,0.4);font-size:0.7em;margin-top:2px;">${d.sub||''} · ${kb}KB · ${d.kategori||''}</div>
+              </div>
+              <div style="display:flex;gap:4px;flex-shrink:0;">
+                <button onclick="cmsUI_v3._downloadPDF('${doc.id}')"
+                  style="padding:3px 8px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#34d399;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-download"></i></button>
+                <button onclick="cmsUI_v3.deletePDF('${doc.id}')"
+                  style="padding:3px 8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>`;
+          el.appendChild(item);
+        });
+      }catch(e){ el.innerHTML=`<div style="color:#fca5a5;font-size:.74em;padding:8px;">Error: ${e.message}</div>`; }
+    },
+
+    async _downloadPDF(id){
+      const db = V3._db(); if(!db) return;
+      try{
+        const doc = await db.collection('dokumen_pdf').doc(id).get();
+        if(!doc.exists){ V3._toast('❌ Dokumen tidak ditemukan','error'); return; }
+        const d = doc.data();
+        const a = document.createElement('a');
+        a.href = d.data;
+        a.download = d.fileName || 'dokumen.pdf';
+        a.click();
+      }catch(e){ V3._toast('❌ Gagal mengunduh: '+e.message,'error'); }
+    },
+
+    async deletePDF(id){
+      if(!V3._isAdmin()) return;
+      if(!confirm('Yakin hapus dokumen PDF ini? Data tidak bisa dikembalikan.')) return;
+      try{
+        await V3._db().collection('dokumen_pdf').doc(id).delete();
+        V3._toast('🗑️ Dokumen dihapus','');
+        V3.loadPDF();
+        V3._renderKhutbahPublic();
+      }catch(e){ V3._toast('❌ '+e.message,'error'); }
+    },
+
+    // Render ulang daftar khutbah/dokumen di halaman publik
+    async _renderKhutbahPublic(){
+      const db = V3._db(); if(!db) return;
+      const list = document.getElementById('khutbah-list-publik'); if(!list) return;
+      try{
+        const snap = await db.collection('dokumen_pdf').orderBy('createdAt','desc').limit(8).get();
+        if(snap.empty) return;
+        list.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const item = document.createElement('div');
+          item.className = 'khutbah-item';
+          item.innerHTML = `
+            <i class="fas fa-file-pdf" style="color:#ef4444;"></i>
+            <div>
+              <div class="title">${d.judul||'—'}</div>
+              <div class="sub">${d.sub||''}</div>
+              <button onclick="cmsUI_v3._downloadPDFPublic('${doc.id}')" class="btn-download"><i class="fas fa-download"></i> Unduh PDF</button>
+            </div>`;
+          list.appendChild(item);
+        });
+      }catch(e){ console.warn('[Khutbah Publik]', e); }
+    },
+
+    async _downloadPDFPublic(id){
+      const db = V3._db(); if(!db) return;
+      try{
+        V3._toast('⏳ Mengambil dokumen...','');
+        const doc = await db.collection('dokumen_pdf').doc(id).get();
+        if(!doc.exists) throw new Error('Dokumen tidak ditemukan');
+        const d = doc.data();
+        const a = document.createElement('a');
+        a.href = d.data;
+        a.download = d.fileName || 'dokumen.pdf';
+        a.click();
+      }catch(e){ alert('Gagal mengunduh: '+e.message); }
+    },
+
+    // ──────────────────────────────────────────────────────────
+    //  PUBLIC CONTENT LOADER — dipanggil saat Firebase siap
+    // ──────────────────────────────────────────────────────────
+    loadPublicContent(){
+      const db = V3._db(); if(!db) return;
+      // Load jadwal publik untuk semua tab
+      ['hari-biasa','jumat','ahad'].forEach(hari => V3._renderJadwalPublicSilent(hari));
+      V3._renderPrestasiPublic();
+      V3._renderKhutbahPublic();
+    },
+
+    async _renderJadwalPublicSilent(hari){
+      const db = V3._db(); if(!db) return;
+      const tbody = document.getElementById('jadwal-tbody-'+hari); if(!tbody) return;
+      try{
+        const snap = await db.collection('jadwal').where('hari','==',hari).orderBy('urutan','asc').get();
+        if(snap.empty) return; // jaga data statis default
+        tbody.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const badgeClass = d.status==='wajib'?'badge-wajib': d.status==='sunnah'?'badge-sunnah':'badge-optional';
+          const label = d.status==='wajib'?'Wajib': d.status==='sunnah'?'Sunnah':'Mandiri';
+          const tr = document.createElement('tr');
+          tr.innerHTML=`<td><strong>${d.waktu||'—'}</strong></td><td>${d.kegiatan||'—'}</td><td>${d.tempat||'—'}</td><td><span class="badge ${badgeClass}">${label}</span></td>`;
+          tbody.appendChild(tr);
+        });
+      }catch(e){ /* Firestore index belum ada — biarkan data statis */ }
+    },
+
+    // ──────────────────────────────────────────────────────────
+    //  PERBAIKAN UPLOAD FOTO GALERI (override doUploadFoto)
+    //  — Kompres lebih agresif supaya muat di Firestore (<900KB)
+    // ──────────────────────────────────────────────────────────
+    patchGaleriUpload(){
+      if(!window.cmsUI) return;
+      // Override _uploadFileToStorage supaya kompres agresif
+      window.cmsUI._uploadFileToStorage = async function(file, path){
+        const MAX_BYTES = 750 * 1024; // 750KB target setelah base64
+        // Untuk semua gambar, kompres via canvas
+        return new Promise((res, rej) => {
+          const img = new Image();
+          const url = URL.createObjectURL(file);
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            // Resize proporsional max 900px
+            const maxDim = 900;
+            if(w > maxDim || h > maxDim){
+              if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+              else { w = Math.round(w * maxDim / h); h = maxDim; }
+            }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            // Mulai dari quality 0.82, turunkan hingga muat
+            let quality = 0.82;
+            let dataUrl = canvas.toDataURL('image/jpeg', quality);
+            while(dataUrl.length * 0.75 > MAX_BYTES && quality > 0.3){
+              quality -= 0.08;
+              dataUrl = canvas.toDataURL('image/jpeg', quality);
+            }
+            if(dataUrl.length * 0.75 > 900*1024){
+              rej(new Error('Gambar terlalu besar setelah kompresi. Gunakan gambar yang lebih kecil (< 2MB, < 3000px).'));
+            } else {
+              res(dataUrl);
+            }
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            rej(new Error('Gagal membaca gambar'));
+          };
+          img.src = url;
+        });
+      };
+    }
+  };
+
+  // Expose ke global
+  window.cmsUI_v3 = V3;
+
+  // Extend cmsUI dengan fungsi V3 setelah cmsUI siap
+  function extendCmsUI(){
+    if(window.cmsUI){
+      window.cmsUI.loadJadwal    = (h)=> V3.loadJadwal(h);
+      window.cmsUI.openAddJadwal = (d)=> V3.openAddJadwal(d);
+      window.cmsUI.saveJadwal    = ()=> V3.saveJadwal();
+      window.cmsUI.closeJadwalModal = ()=> V3.closeJadwalModal();
+      window.cmsUI.deleteJadwal  = (id,h)=> V3.deleteJadwal(id,h);
+
+      window.cmsUI.loadPrestasi     = ()=> V3.loadPrestasi();
+      window.cmsUI.openAddPrestasi  = (d)=> V3.openAddPrestasi(d);
+      window.cmsUI.savePrestasi     = ()=> V3.savePrestasi();
+      window.cmsUI.closePrestasiModal= ()=> V3.closePrestasiModal();
+      window.cmsUI.deletePrestasi   = (id)=> V3.deletePrestasi(id);
+
+      window.cmsUI.loadPDF      = ()=> V3.loadPDF();
+      window.cmsUI.openAddPDF   = ()=> V3.openAddPDF();
+      window.cmsUI.doUploadPDF  = ()=> V3.doUploadPDF();
+      window.cmsUI.closePDFModal= ()=> V3.closePDFModal();
+      window.cmsUI.deletePDF    = (id)=> V3.deletePDF(id);
+      window.cmsUI.handlePDFDrop    = (e)=> V3.handlePDFDrop(e);
+      window.cmsUI.handlePDFSelect  = (i)=> V3.handlePDFSelect(i);
+
+      // Patch galeri upload
+      V3.patchGaleriUpload();
+    }
+  }
+
+  // Tunggu cmsUI dan Firebase siap, lalu load public content
+  function waitAndInit(tries){
+    tries = tries||0;
+    if(tries > 100) return;
+    if(window.cmsUI && window.db){
+      extendCmsUI();
+      // Load konten publik dari Firestore
+      V3.loadPublicContent();
+      console.info('%c✅ CMS Sagatama v3.0 aktif — Jadwal, Prestasi, PDF siap (no Storage)', 'color:#10b981;font-weight:bold;font-size:11px;');
+    } else {
+      setTimeout(()=>waitAndInit(tries+1), 150);
+    }
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ()=> setTimeout(waitAndInit, 800));
+  } else {
+    setTimeout(waitAndInit, 800);
+  }
+})();
+</script>
+</body></html>
