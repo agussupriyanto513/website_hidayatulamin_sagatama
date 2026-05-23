@@ -1714,13 +1714,9 @@
             .nav-sgt-btn { display: none; }
         }
 
-        /* ══ NAV: hamburger hanya tampil di mobile/tablet, desktop pakai nav-desktop ══ */
+        /* ══ NAV: mobile=hamburger saja, desktop=nav links + hamburger (untuk admin login) ══ */
 
-        /* Default: tampilkan nav desktop, sembunyikan hamburger */
-        .nav-desktop { display: flex !important; align-items: center; gap: 4px; }
-        .hamburger { display: none !important; }
-
-        /* Di tablet & mobile: sembunyikan nav desktop, tampilkan hamburger */
+        /* Mobile/tablet (≤1023px): sembunyikan nav desktop, tampilkan hamburger */
         @media (max-width: 1023px) {
             .nav-desktop { display: none !important; }
             .hamburger {
@@ -1730,6 +1726,20 @@
                 flex-shrink: 0;
                 margin-left: auto;
             }
+        }
+
+        /* Desktop (≥1024px): tampilkan nav-desktop DAN hamburger tetap ada untuk admin sidebar */
+        @media (min-width: 1024px) {
+            .nav-desktop { display: flex !important; align-items: center; gap: 4px; }
+            .hamburger {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 5px;
+                flex-shrink: 0;
+                margin-left: 8px;
+                opacity: 0.65;
+            }
+            .hamburger:hover { opacity: 1; }
         }
 
         /* Sembunyikan SGT btn dan visitor badge di navbar mobile */
