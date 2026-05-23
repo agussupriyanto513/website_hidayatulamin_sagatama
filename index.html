@@ -6152,6 +6152,16 @@ setInterval(fetchPiPrice, 300000);
           </div>
         </div>
 
+
+        <!-- Kelola Keuangan -->
+        <button class="cms-ctgl" onclick="cmsUI.ctgl('keuangan'); cmsUI.loadKeuangan()"><span><i class="ci fas fa-chart-pie"></i>Laporan Keuangan</span><i class="fas fa-chevron-down arr"></i></button>
+        <div class="cms-cpanel" id="cmsc-keuangan">
+          <div style="padding:0 4px 12px;">
+            <button class="cms-mbtn a" onclick="cmsUI.openAddKeuangan()" style="width:100%;margin-bottom:10px;"><i class="fas fa-plus"></i> Tambah Data Keuangan</button>
+            <div id="cms-keuangan-list"><div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:10px 0;">Klik panah di atas untuk memuat...</div></div>
+          </div>
+        </div>
+
         <!-- Tambah Admin -->
         <button class="cms-ctgl" onclick="cmsUI.ctgl('addadmin')"><span><i class="ci fas fa-user-shield"></i>Tambah Admin</span><i class="fas fa-chevron-down arr"></i></button>
         <div class="cms-cpanel" id="cmsc-addadmin">
@@ -6275,6 +6285,33 @@ setInterval(fetchPiPrice, 300000);
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button onclick="cmsUI.closeVideoModal()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
           <button onclick="cmsUI.saveVideo()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fab fa-youtube"></i> Simpan Video</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Kelola Keuangan -->
+    <div id="cms-keuangan-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#070d1a;border:1px solid rgba(16,185,129,0.3);border-radius:20px;width:100%;max-width:500px;padding:24px;font-family:'DM Sans',sans-serif;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="color:#34d399;font-weight:800;font-size:.9em;"><i class="fas fa-chart-pie" style="margin-right:8px;"></i><span id="cms-keu-modal-title">Tambah Data Keuangan</span></div>
+          <button onclick="cmsUI.closeKeuanganModal()" style="background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:7px;cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <label class="cms-flbl">Bulan & Tahun</label>
+        <input class="cms-finp" id="cms-keu-bulan" placeholder="Contoh: Januari 2026" style="width:100%;margin-bottom:8px;">
+        <label class="cms-flbl">Pemasukan (Rp)</label>
+        <input class="cms-finp" id="cms-keu-masuk" type="number" placeholder="Contoh: 15000000" style="width:100%;margin-bottom:8px;">
+        <label class="cms-flbl">Pengeluaran (Rp)</label>
+        <input class="cms-finp" id="cms-keu-keluar" type="number" placeholder="Contoh: 10000000" style="width:100%;margin-bottom:8px;">
+        <label class="cms-flbl">Catatan (opsional)</label>
+        <textarea class="cms-finp" id="cms-keu-catatan" rows="2" placeholder="Catatan singkat bulan ini..." style="width:100%;resize:none;margin-bottom:12px;"></textarea>
+        <div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+          <div style="color:rgba(255,255,255,0.5);font-size:0.72em;margin-bottom:4px;">SALDO (dihitung otomatis)</div>
+          <div id="cms-keu-saldo-preview" style="color:#34d399;font-weight:800;font-size:1.3em;">Rp 0</div>
+        </div>
+        <input type="hidden" id="cms-keu-eid">
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button onclick="cmsUI.closeKeuanganModal()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.8em;cursor:pointer;">Batal</button>
+          <button onclick="cmsUI.saveKeuangan()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#059669,#10b981);color:white;font-family:'DM Sans',sans-serif;font-weight:800;font-size:.8em;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-save"></i> Simpan</button>
         </div>
       </div>
     </div>
@@ -7121,6 +7158,145 @@ setInterval(fetchPiPrice, 300000);
       catch(e){this.toast('❌ '+e.message,'error');}
     },
 
+
+    // ══════════════════════════════════════════════════
+    //  KEUANGAN — Load, Tambah, Edit, Hapus
+    // ══════════════════════════════════════════════════
+    openAddKeuangan(doc){
+      const modal = document.getElementById('cms-keuangan-modal');
+      if(!modal) return;
+      document.getElementById('cms-keu-modal-title').textContent = doc ? 'Edit Data Keuangan' : 'Tambah Data Keuangan';
+      document.getElementById('cms-keu-bulan').value   = doc?.bulan   || '';
+      document.getElementById('cms-keu-masuk').value   = doc?.masuk   || '';
+      document.getElementById('cms-keu-keluar').value  = doc?.keluar  || '';
+      document.getElementById('cms-keu-catatan').value = doc?.catatan || '';
+      document.getElementById('cms-keu-eid').value     = doc?.id      || '';
+      this._updateSaldoPreview();
+      // Live saldo preview
+      ['cms-keu-masuk','cms-keu-keluar'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.oninput = () => this._updateSaldoPreview();
+      });
+      modal.style.display = 'flex';
+    },
+    _updateSaldoPreview(){
+      const masuk  = parseFloat(document.getElementById('cms-keu-masuk')?.value  || 0) || 0;
+      const keluar = parseFloat(document.getElementById('cms-keu-keluar')?.value || 0) || 0;
+      const saldo  = masuk - keluar;
+      const el = document.getElementById('cms-keu-saldo-preview');
+      if(el){
+        el.textContent = 'Rp ' + saldo.toLocaleString('id-ID');
+        el.style.color = saldo >= 0 ? '#34d399' : '#f87171';
+      }
+    },
+    closeKeuanganModal(){
+      const modal = document.getElementById('cms-keuangan-modal');
+      if(modal) modal.style.display = 'none';
+    },
+    async saveKeuangan(){
+      if(!CMS.isAdmin || !CMS.db) return;
+      const bulan   = document.getElementById('cms-keu-bulan')?.value.trim();
+      const masuk   = parseFloat(document.getElementById('cms-keu-masuk')?.value  || 0) || 0;
+      const keluar  = parseFloat(document.getElementById('cms-keu-keluar')?.value || 0) || 0;
+      const catatan = document.getElementById('cms-keu-catatan')?.value.trim() || '';
+      const eid     = document.getElementById('cms-keu-eid')?.value || '';
+      if(!bulan){ this.toast('❌ Bulan harus diisi','error'); return; }
+      const saldo = masuk - keluar;
+      const data  = { bulan, masuk, keluar, saldo, catatan,
+                      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                      updatedBy: CMS.user?.email || 'admin' };
+      try{
+        if(eid) await CMS.db.collection('keuangan').doc(eid).update(data);
+        else    await CMS.db.collection('keuangan').add({ ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        this.toast('✅ Data keuangan berhasil disimpan!', 'success');
+        this.closeKeuanganModal();
+        this.loadKeuangan();
+        this._renderKeuanganPublic();
+      } catch(e){ this.toast('❌ ' + e.message, 'error'); }
+    },
+    async loadKeuangan(){
+      if(!CMS.isAdmin || !CMS.db) return;
+      const el = document.getElementById('cms-keuangan-list');
+      if(!el) return;
+      el.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:.74em;text-align:center;padding:8px;">Memuat...</div>';
+      try{
+        const snap = await CMS.db.collection('keuangan').orderBy('createdAt','desc').limit(24).get();
+        if(snap.empty){
+          el.innerHTML = '<div style="color:rgba(255,255,255,.25);font-size:.74em;text-align:center;padding:12px;">Belum ada data. Klik "+ Tambah" untuk mulai.</div>';
+          return;
+        }
+        el.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const saldo = (d.masuk||0) - (d.keluar||0);
+          const item  = document.createElement('div');
+          item.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;margin-bottom:8px;';
+          item.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <div style="color:white;font-weight:700;font-size:0.82em;">${d.bulan||'—'}</div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="cmsUI.openAddKeuangan({id:'${doc.id}',...${JSON.stringify(d)}})"
+                  style="padding:3px 8px;background:rgba(212,160,23,0.15);border:1px solid rgba(212,160,23,0.3);color:#d4a017;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                  <i class="fas fa-pen"></i> Edit
+                </button>
+                <button onclick="cmsUI.deleteKeuangan('${doc.id}')"
+                  style="padding:3px 8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:5px;font-size:0.65em;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:0.7em;text-align:center;">
+              <div style="background:rgba(16,185,129,0.1);border-radius:6px;padding:5px;">
+                <div style="color:rgba(255,255,255,0.4);">Masuk</div>
+                <div style="color:#34d399;font-weight:700;">${(d.masuk||0).toLocaleString('id-ID')}</div>
+              </div>
+              <div style="background:rgba(239,68,68,0.1);border-radius:6px;padding:5px;">
+                <div style="color:rgba(255,255,255,0.4);">Keluar</div>
+                <div style="color:#fca5a5;font-weight:700;">${(d.keluar||0).toLocaleString('id-ID')}</div>
+              </div>
+              <div style="background:rgba(${saldo>=0?'16,185,129':'239,68,68'},0.1);border-radius:6px;padding:5px;">
+                <div style="color:rgba(255,255,255,0.4);">Saldo</div>
+                <div style="color:${saldo>=0?'#34d399':'#fca5a5'};font-weight:700;">${saldo.toLocaleString('id-ID')}</div>
+              </div>
+            </div>`;
+          el.appendChild(item);
+        });
+      } catch(e){
+        el.innerHTML = '<div style="color:#fca5a5;font-size:.74em;padding:8px;">Error: ' + e.message + '<br><small>Pastikan koleksi keuangan ada di Firestore dan rules mengizinkan admin membaca.</small></div>';
+      }
+    },
+    async deleteKeuangan(id){
+      if(!CMS.isAdmin) return;
+      if(!confirm('Yakin hapus data keuangan ini?')) return;
+      try{
+        await CMS.db.collection('keuangan').doc(id).delete();
+        this.toast('🗑️ Data dihapus','');
+        this.loadKeuangan();
+        this._renderKeuanganPublic();
+      } catch(e){ this.toast('❌ ' + e.message,'error'); }
+    },
+    // Render ulang tabel keuangan di halaman publik setelah update
+    async _renderKeuanganPublic(){
+      const tbody = document.querySelector('#keuangan table tbody');
+      if(!tbody || !CMS.db) return;
+      try{
+        const snap = await CMS.db.collection('keuangan').orderBy('createdAt','asc').get();
+        if(snap.empty) return;
+        tbody.innerHTML = '';
+        snap.forEach(doc => {
+          const d   = doc.data();
+          const sal = (d.masuk||0) - (d.keluar||0);
+          const tr  = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${d.bulan||'—'}</strong></td>
+            <td style="color:var(--success);font-weight:700;">${(d.masuk||0).toLocaleString('id-ID')}</td>
+            <td style="color:var(--danger);font-weight:700;">${(d.keluar||0).toLocaleString('id-ID')}</td>
+            <td><strong>${sal.toLocaleString('id-ID')}</strong></td>`;
+          tbody.appendChild(tr);
+        });
+      } catch(e){ console.warn('[Keuangan] Render gagal:', e); }
+    },
+
     async logout(){
       try{if(CMS.auth?.currentUser)await CMS.auth.signOut();}catch(e){}
       CMS.isAdmin=false;CMS.user=null;CMS.editMode=false;CMS.pendingChanges={};
@@ -7578,10 +7754,39 @@ setInterval(fetchPiPrice, 300000);
       .catch(e => console.warn('[Galeri] Gagal memuat:', e));
   }
 
+
+  // ── LOAD KEUANGAN PUBLIK dari Firestore ──
+  function loadKeuanganPublic() {
+    const db = window.db;
+    if (!db) return;
+    const tbody = document.querySelector('#keuangan table tbody');
+    if (!tbody) return;
+    db.collection('keuangan')
+      .orderBy('createdAt', 'asc')
+      .get()
+      .then(snap => {
+        if (snap.empty) return; // tampil data hardcoded jika Firestore masih kosong
+        tbody.innerHTML = '';
+        snap.forEach(doc => {
+          const d   = doc.data();
+          const sal = (d.masuk||0) - (d.keluar||0);
+          const tr  = document.createElement('tr');
+          tr.innerHTML =
+            '<td><strong>' + (d.bulan||'—') + '</strong></td>' +
+            '<td style="color:var(--success);font-weight:700;">' + (d.masuk||0).toLocaleString('id-ID') + '</td>' +
+            '<td style="color:var(--danger);font-weight:700;">'  + (d.keluar||0).toLocaleString('id-ID') + '</td>' +
+            '<td><strong>' + sal.toLocaleString('id-ID') + '</strong></td>';
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(e => console.warn('[Keuangan Publik] Gagal memuat:', e));
+  }
+
   // Jalankan loadPublicContent segera setelah Firebase siap
   waitFirebase(function() {
     loadPublicContent();
     loadGaleriPublic();
+    loadKeuanganPublic();
     // Re-load setiap 5 menit untuk konten terbaru
     setInterval(loadPublicContent, 300000);
     setInterval(loadGaleriPublic, 300000);
