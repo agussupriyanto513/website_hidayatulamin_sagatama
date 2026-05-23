@@ -995,19 +995,20 @@
         .dot-teal { background: var(--emerald); }
         .dot-purple { background: var(--pi-color); }
 
-        /* WA FLOAT — pojok kanan bawah, kecil & tidak mengganggu */
+        /* WA FLOAT — desktop kanan bawah kecil, mobile disembunyikan */
         .wa-float {
             position: fixed; bottom: 24px; right: 24px;
-            width: 52px; height: 52px; background: #25d366;
+            width: 48px; height: 48px; background: #25d366;
             color: var(--white); border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.4em; z-index: 2000; text-decoration: none;
-            box-shadow: 0 4px 20px rgba(37,211,102,0.35);
-            transition: all 0.3s; opacity: 0.82;
+            font-size: 1.3em; z-index: 1500; text-decoration: none;
+            box-shadow: 0 4px 16px rgba(37,211,102,0.3);
+            transition: all 0.3s; opacity: 0.85;
         }
-        .wa-float:hover { opacity: 1; transform: scale(1.08); box-shadow: 0 8px 32px rgba(37,211,102,0.55); }
-        @media (max-width: 768px) {
-            .wa-float { bottom: 76px; right: 14px; width: 48px; height: 48px; font-size: 1.3em; border-radius: 14px; }
+        .wa-float:hover { opacity: 1; transform: scale(1.08); box-shadow: 0 8px 28px rgba(37,211,102,0.5); }
+        @media (max-width: 1023px) {
+            /* Di mobile & laptop: WA disembunyikan — sudah ada link WA di drawer dan footer */
+            .wa-float { display: none !important; }
         }
 
         /* OVERLAY & MSG BOX */
@@ -2454,7 +2455,7 @@
         </a>
 
         <!-- Desktop Nav -->
-        <div class="nav-desktop" style="gap:4px;align-items:center;flex-shrink:1;flex:1;justify-content:flex-end;overflow:visible;">
+        <div class="nav-desktop">
 
 
 
