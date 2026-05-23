@@ -2647,11 +2647,47 @@
     </div>
 
     <!-- Footer drawer -->
-    <div style="padding:20px;margin-top:8px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
-        <div style="color:rgba(255,255,255,0.25);font-size:0.7em;">Portal Sagatama · Firebase Project</div>
-        <div style="color:rgba(212,160,23,0.4);font-size:0.65em;margin-top:4px;">Spiritual · Teknologi · Ekonomi · 513</div>
+    <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,0.05);">
+        <!-- Tombol Admin Login — tersembunyi di bawah drawer -->
+        <button id="drawer-admin-btn" onclick="closeMobileMenu(); setTimeout(()=>{ if(window.cmsUI) cmsUI.fabClick(); }, 300);"
+            style="width:100%;display:flex;align-items:center;gap:10px;background:rgba(15,52,96,0.4);border:1px solid rgba(212,160,23,0.2);border-radius:10px;padding:11px 16px;cursor:pointer;transition:0.2s;margin-bottom:14px;"
+            onmouseover="this.style.borderColor='rgba(212,160,23,0.5)';this.style.background='rgba(15,52,96,0.7)'"
+            onmouseout="this.style.borderColor='rgba(212,160,23,0.2)';this.style.background='rgba(15,52,96,0.4)'">
+            <i class="fas fa-shield-halved" id="drawer-admin-icon" style="color:rgba(212,160,23,0.6);font-size:1em;width:18px;text-align:center;"></i>
+            <span id="drawer-admin-label" style="color:rgba(255,255,255,0.45);font-size:0.78em;font-weight:600;font-family:'DM Sans',sans-serif;">Masuk sebagai Admin</span>
+            <i class="fas fa-chevron-right" style="color:rgba(255,255,255,0.2);font-size:0.7em;margin-left:auto;"></i>
+        </button>
+        <div style="color:rgba(255,255,255,0.2);font-size:0.68em;text-align:center;">Portal Sagatama · Firebase Project</div>
+        <div style="color:rgba(212,160,23,0.35);font-size:0.62em;margin-top:3px;text-align:center;">Spiritual · Teknologi · Ekonomi · 513</div>
     </div>
 </div>
+
+<script>
+// Sinkronkan status admin di tombol drawer
+(function syncDrawerAdminBtn() {
+    function update() {
+        const btn = document.getElementById('drawer-admin-btn');
+        const lbl = document.getElementById('drawer-admin-label');
+        const ico = document.getElementById('drawer-admin-icon');
+        if (!btn) return;
+        const isAdmin = document.body.classList.contains('cms-admin-active');
+        if (isAdmin) {
+            lbl.textContent = 'Panel Admin CMS';
+            ico.style.color = '#d4a017';
+            btn.style.background = 'rgba(212,160,23,0.12)';
+            btn.style.borderColor = 'rgba(212,160,23,0.4)';
+        } else {
+            lbl.textContent = 'Masuk sebagai Admin';
+            ico.style.color = 'rgba(212,160,23,0.6)';
+            btn.style.background = 'rgba(15,52,96,0.4)';
+            btn.style.borderColor = 'rgba(212,160,23,0.2)';
+        }
+    }
+    // Cek setiap 2 detik
+    setInterval(update, 2000);
+    document.addEventListener('DOMContentLoaded', update);
+})();
+</script>
 
 <!-- BOTTOM NAVIGATION BAR (mobile) -->
 <nav class="bottom-nav" id="bottomNav">
