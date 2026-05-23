@@ -1738,12 +1738,12 @@
             .nav-container > div[title="Pengunjung aktif"] { display: none !important; }
         }
 
-        /* Sidebar lebih lebar di layar besar */
+        /* Sidebar lebih lebar di layar besar — left harus >= width supaya tersembunyi */
         @media (min-width: 769px) {
-            .mobile-menu { width: 320px !important; }
+            .mobile-menu { width: 320px !important; left: -340px; }
         }
         @media (min-width: 1200px) {
-            .mobile-menu { width: 360px !important; }
+            .mobile-menu { width: 360px !important; left: -380px; }
         }
 
         /* ── MARQUEE BAR ── */
