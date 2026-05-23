@@ -68,9 +68,9 @@
         a, button, [onclick], .dropdown-item { cursor: pointer !important; }
 
         /* ======= SGT TOKEN SYSTEM ======= */
+        /* SGT Floating — dipindahkan ke drawer sidebar */
         .sgt-floating {
-            position: fixed; bottom: 28px; right: 100px;
-            z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+            display: none !important;
         }
         .sgt-fab {
             width: 58px; height: 58px; border-radius: 50%;
@@ -250,6 +250,7 @@
         .logo-text .tagline { color: var(--accent); font-size: 0.55em; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; }
 
         /* HAMBURGER */
+        /* HAMBURGER — tersembunyi default, tampil di mobile & laptop via @media */
         .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; padding: 8px; cursor: pointer; z-index: 1100; }
         .hamburger span { display: block; width: 24px; height: 2px; background: var(--white); border-radius: 2px; transition: 0.3s; }
         .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
@@ -267,7 +268,7 @@
         }
         .drawer-overlay.open { display: block; }
 
-        /* ── SIDEBAR DRAWER (slide from left) ── */
+        /* ── SIDEBAR DRAWER (slide from left — mobile & laptop) ── */
         .mobile-menu {
             position: fixed;
             top: 0; left: -320px; right: auto;
@@ -286,7 +287,7 @@
         /* Drawer header */
         .drawer-header {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 18px 20px;
+            padding: 16px 20px;
             border-bottom: 1px solid rgba(212,160,23,0.2);
             background: rgba(15,52,96,0.3);
             position: sticky; top: 0; z-index: 2;
@@ -297,7 +298,7 @@
         }
         .drawer-close {
             background: rgba(255,255,255,0.07); border: none; color: rgba(255,255,255,0.6);
-            width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+            width: 42px; height: 42px; border-radius: 10px; cursor: pointer;
             font-size: 1em; display: flex; align-items: center; justify-content: center;
             transition: 0.2s; touch-action: manipulation;
         }
@@ -312,7 +313,7 @@
             font-family: 'DM Sans', sans-serif;
             display: flex; justify-content: space-between; align-items: center;
             letter-spacing: 0.3px; transition: background 0.2s;
-            min-height: 52px; touch-action: manipulation;
+            min-height: 54px; touch-action: manipulation;
         }
         .mobile-menu-toggle:hover { background: rgba(212,160,23,0.06); }
         .mobile-menu-toggle i.fa-chevron-down { color: var(--accent); font-size: 0.8em; transition: transform 0.3s; }
@@ -322,21 +323,21 @@
         .mobile-submenu a {
             display: flex; align-items: center; gap: 10px;
             color: rgba(255,255,255,0.65); text-decoration: none;
-            padding: 13px 20px 13px 32px; font-size: 0.84em;
+            padding: 13px 20px 13px 32px; font-size: 0.85em;
             border-left: 3px solid transparent;
-            transition: 0.2s; min-height: 46px; touch-action: manipulation;
+            transition: 0.2s; min-height: 48px; touch-action: manipulation;
         }
         .mobile-submenu a:hover { color: var(--accent); border-left-color: var(--accent); background: rgba(212,160,23,0.05); }
-        /* Menu langsung (tanpa dropdown) */
+        /* Link langsung tanpa dropdown */
         .mobile-menu-direct {
             display: flex; align-items: center; gap: 12px;
             color: var(--white); text-decoration: none;
             padding: 16px 20px; font-size: 0.9em; font-weight: 600;
             border-bottom: 1px solid rgba(255,255,255,0.05);
-            transition: background 0.2s; min-height: 52px; touch-action: manipulation;
+            transition: background 0.2s; min-height: 54px; touch-action: manipulation;
         }
         .mobile-menu-direct:hover { background: rgba(212,160,23,0.06); color: var(--accent); }
-        .mobile-menu-direct i { color: rgba(255,255,255,0.5); width: 20px; text-align: center; font-size: 0.9em; }
+        .mobile-menu-direct i { color: rgba(255,255,255,0.45); width: 20px; text-align: center; font-size: 0.9em; }
 
         /* ── BOTTOM NAVIGATION BAR (mobile) ── */
         .bottom-nav {
@@ -994,12 +995,19 @@
         .dot-teal { background: var(--emerald); }
         .dot-purple { background: var(--pi-color); }
 
-        /* WA FLOAT */
-        .wa-float { position: fixed; bottom: 32px; right: 32px; width: 62px; height: 62px; background: #25d366; color: var(--white); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 1.7em; z-index: 2000; text-decoration: none; box-shadow: 0 8px 32px rgba(37,211,102,0.4); transition: all 0.3s; }
-        .wa-float:hover { transform: translateY(-4px) scale(1.08); box-shadow: 0 16px 48px rgba(37,211,102,0.55); }
-        /* Mobile: WA ke kiri bawah agar tidak tabrakan dengan SGT & back-to-top di kanan */
+        /* WA FLOAT — pojok kanan bawah, kecil & tidak mengganggu */
+        .wa-float {
+            position: fixed; bottom: 24px; right: 24px;
+            width: 52px; height: 52px; background: #25d366;
+            color: var(--white); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4em; z-index: 2000; text-decoration: none;
+            box-shadow: 0 4px 20px rgba(37,211,102,0.35);
+            transition: all 0.3s; opacity: 0.82;
+        }
+        .wa-float:hover { opacity: 1; transform: scale(1.08); box-shadow: 0 8px 32px rgba(37,211,102,0.55); }
         @media (max-width: 768px) {
-            .wa-float { bottom: 76px; right: 14px; width: 52px; height: 52px; font-size: 1.4em; border-radius: 14px; }
+            .wa-float { bottom: 76px; right: 14px; width: 48px; height: 48px; font-size: 1.3em; border-radius: 14px; }
         }
 
         /* OVERLAY & MSG BOX */
@@ -1047,18 +1055,10 @@
         body.light-mode .section-dark .pilar-card p { color: var(--text-muted); }
 
         /* THEME TOGGLE BUTTON */
+        /* Theme toggle dipindah ke dalam drawer sidebar, fixed button disembunyikan */
         #theme-toggle {
-            position: fixed; top: 50%; right: 0;
-            transform: translateY(-50%);
-            width: 40px; height: 40px;
-            background: var(--primary); color: var(--accent);
-            border: none; border-radius: 10px 0 0 10px;
-            font-size: 1em; cursor: pointer; z-index: 1998;
-            box-shadow: var(--shadow-md);
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.3s;
+            display: none !important;
         }
-        #theme-toggle:hover { width: 46px; }
 
         /* ======= SEARCH BAR ======= */
         #search-modal {
@@ -1214,8 +1214,9 @@
         .beasiswa-card ul li i { color: var(--success); }
 
         /* ======= QUICK ACCESS FLOATING MENU ======= */
+        /* Quick menu disembunyikan — semua link sudah ada di sidebar drawer */
         #quick-menu {
-            position: fixed; bottom: 32px; left: 32px; z-index: 1997;
+            display: none !important;
         }
         .quick-toggle {
             width: 50px; height: 50px; border-radius: 14px;
@@ -1521,9 +1522,8 @@
         }
         @media (max-width: 768px) {
             .nav-desktop { display: none; }
-            .hamburger { display: none; }  /* shown via mobile override below */
+            .hamburger { display: flex !important; margin-left: auto; flex-shrink: 0; }
             .bottom-nav { display: block; }
-            /* Push page content up from bottom nav */
             body { padding-bottom: 64px; }
             .hero { padding-top: 130px; }
             .hero-stats { flex-wrap: wrap; }
@@ -1706,15 +1706,24 @@
         @media (max-width: 768px) {
             nav { height: 58px; }
             .nav-container { padding: 0 14px; gap: 8px; justify-content: space-between; }
-            .logo-icon { width: 38px; height: 38px; font-size: 0.85em; display: flex !important; flex-shrink: 0; }
-            .logo-text .name { font-size: 0.72em; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+            .logo-icon { width: 36px; height: 36px; font-size: 0.85em; display: flex !important; flex-shrink: 0; }
+            .logo-text .name { font-size: 0.72em; max-width: 175px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .logo-text .tagline { display: none; }
-            /* Sembunyikan live visitor di navbar mobile agar tidak sesak */
             .nav-container > div[title="Pengunjung aktif"] { display: none !important; }
-            /* Tombol SGT di nav: sembunyikan di mobile */
             .nav-sgt-btn { display: none; }
-            /* Tampilkan hamburger di mobile untuk buka sidebar */
-            .hamburger { display: flex !important; margin-left: auto; flex-shrink: 0; }
+        }
+
+        /* ══ LAPTOP (769–1023px): sidebar menu, sembunyikan top dropdown ══ */
+        @media (min-width: 769px) and (max-width: 1023px) {
+            .nav-desktop { display: none !important; }
+            .hamburger { display: flex !important; flex-shrink: 0; }
+            .nav-sgt-btn { display: none; }
+            .nav-container > div[title="Pengunjung aktif"] { display: none !important; }
+        }
+        /* ══ DESKTOP ≥1024px: hamburger tersembunyi, nav-desktop tampil ══ */
+        @media (min-width: 1024px) {
+            .hamburger { display: none !important; }
+            .nav-desktop { display: flex !important; }
         }
 
         /* ── MARQUEE BAR ── */
@@ -2537,14 +2546,30 @@
     <div class="drawer-header">
         <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:34px;height:34px;border-radius:50%;border:2px solid var(--accent);background:white;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                <img src="logo_yayasan_sagatama.png" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-family:Cinzel,serif;font-weight:900;color:#d4a017;font-size:1em;\'>S</span>';">
+                <img src="logo_yayasan_sagatama.png" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.parentElement.innerHTML='<span style='font-family:Cinzel,serif;font-weight:900;color:#d4a017;font-size:1em;'>S</span>';">
             </div>
             <div>
-                <div class="drawer-logo" style="font-size:0.8em;letter-spacing:1.5px;">SAGATAMA</div>
-                <div style="color:rgba(255,255,255,0.35);font-size:0.6em;letter-spacing:0.5px;">Spiritual · Teknologi · Ekonomi</div>
+                <div class="drawer-logo" style="font-size:0.78em;letter-spacing:1.5px;">SAGATAMA</div>
+                <div style="color:rgba(255,255,255,0.35);font-size:0.58em;letter-spacing:0.3px;">Spiritual · Teknologi · Ekonomi</div>
             </div>
         </div>
         <button class="drawer-close" onclick="closeMobileMenu()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Quick actions di atas sidebar -->
+    <div style="padding:12px 16px;border-bottom:1px solid rgba(212,160,23,0.12);display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="#" onclick="pindahHalaman('home'); closeMobileMenu(); return false;" style="flex:1;min-width:80px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 8px;text-decoration:none;color:rgba(255,255,255,0.7);font-size:0.72em;font-weight:600;transition:0.2s;" onmouseover="this.style.background='rgba(212,160,23,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+            <i class="fas fa-home" style="font-size:1.1em;color:var(--accent);"></i>Beranda
+        </a>
+        <a href="#psb" onclick="pindahHalaman('home'); closeMobileMenu();" style="flex:1;min-width:80px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 8px;text-decoration:none;color:rgba(255,255,255,0.7);font-size:0.72em;font-weight:600;transition:0.2s;" onmouseover="this.style.background='rgba(212,160,23,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+            <i class="fas fa-user-plus" style="font-size:1.1em;color:#60a5fa;"></i>Daftar PSB
+        </a>
+        <button onclick="closeMobileMenu(); toggleTheme();" style="flex:1;min-width:80px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 8px;color:rgba(255,255,255,0.7);font-size:0.72em;font-weight:600;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='rgba(212,160,23,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+            <i class="fas fa-circle-half-stroke" style="font-size:1.1em;color:#a78bfa;"></i>Tema
+        </button>
+        <a href="pi-payment.html" style="flex:1;min-width:80px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);border-radius:10px;padding:10px 8px;text-decoration:none;color:#c4b5fd;font-size:0.72em;font-weight:600;transition:0.2s;">
+            <i class="fas fa-circle-nodes" style="font-size:1.1em;"></i>Pi Pay
+        </a>
     </div>
 
     <!-- SGT Wallet quick access -->
@@ -2558,14 +2583,6 @@
             <i class="fas fa-chevron-right" style="color:var(--accent);margin-left:auto;font-size:0.8em;"></i>
         </button>
     </div>
-
-    <!-- Beranda & link cepat -->
-    <a href="#" class="mobile-menu-direct" onclick="pindahHalaman('home'); closeMobileMenu(); return false;">
-        <i class="fas fa-home"></i> Beranda
-    </a>
-    <a href="#psb" class="mobile-menu-direct" onclick="pindahHalaman('home'); closeMobileMenu();">
-        <i class="fas fa-user-plus"></i> Daftar Santri (PSB)
-    </a>
 
     <div class="mobile-menu-item">
         <button class="mobile-menu-toggle" onclick="toggleMobileSub('sub-yayasan', this)">
@@ -5606,8 +5623,8 @@ setInterval(fetchPiPrice, 300000);
     s.id='cms-styles';
     s.textContent=`
     :root{--cms-accent:#d4a017;--cms-dark:#070d1a;--cms-glass:rgba(7,13,26,0.96);--cms-border:rgba(212,160,23,0.3);--cms-z:99990;}
-    #cms-fab{position:fixed;bottom:90px;left:28px;z-index:var(--cms-z);display:flex;flex-direction:column;align-items:flex-start;gap:10px;}
-    @media(max-width:768px){#cms-fab{bottom:76px;left:14px;}}
+    #cms-fab{position:fixed;bottom:24px;left:24px;z-index:var(--cms-z);display:none;flex-direction:column;align-items:flex-start;gap:10px;}
+    @media(max-width:768px){#cms-fab{bottom:76px;left:14px;}} body.cms-admin-active #cms-fab{display:flex !important;}
 
     /* BACKDROP overlay saat panel CMS terbuka */
     #cms-panel-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);z-index:calc(var(--cms-z)+4);display:none;animation:cms-bd-in 0.25s ease;}
