@@ -1522,7 +1522,7 @@
         }
         @media (max-width: 768px) {
             .nav-desktop { display: none; }
-            .hamburger { display: flex !important; margin-left: auto; flex-shrink: 0; }
+            .hamburger { display: flex !important; flex-direction: column !important; margin-left: auto; flex-shrink: 0; }
             .bottom-nav { display: block; }
             body { padding-bottom: 64px; }
             .hero { padding-top: 130px; }
@@ -1716,11 +1716,18 @@
         /* ══ LAPTOP (769–1023px): sidebar menu, sembunyikan top dropdown ══ */
         @media (min-width: 769px) and (max-width: 1023px) {
             .nav-desktop { display: none !important; }
-            .hamburger { display: flex !important; flex-shrink: 0; }
+            .hamburger {
+                display: flex !important;
+                flex-direction: column !important;
+                flex-shrink: 0;
+                margin-left: auto;
+            }
+            .hamburger span { background: var(--white); }
             .nav-sgt-btn { display: none; }
             .nav-container > div[title="Pengunjung aktif"] { display: none !important; }
+            .mobile-menu { width: 300px !important; }
         }
-        /* ══ DESKTOP ≥1024px: hamburger tersembunyi, nav-desktop tampil ══ */
+        /* ══ DESKTOP >=1024px: hamburger tersembunyi, nav-desktop tampil ══ */
         @media (min-width: 1024px) {
             .hamburger { display: none !important; }
             .nav-desktop { display: flex !important; }
