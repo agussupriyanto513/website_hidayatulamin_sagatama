@@ -2,7 +2,7 @@
 // Helper untuk memanggil ledger SGT terpusat di backend Mart.
 // App ini SENGAJA tidak punya Firestore sendiri untuk SGT — semua saldo
 // dan riwayat hidup di backend Mart (portal-sagatama / sgt_wallets).
-const SGT_BACKEND = process.env.SGT_BACKEND_URL || 'https://sagatama-backend.vercel.app';
+const SGT_BACKEND = process.env.SGT_BACKEND_URL || 'https://sagatama-mart.vercel.app';
 
 async function sgtCall(endpoint, body) {
   const res = await fetch(`${SGT_BACKEND}/api/sgt/${endpoint}`, {
