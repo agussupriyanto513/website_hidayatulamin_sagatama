@@ -5116,7 +5116,11 @@ async function _swtLoadData() {
         _swtUpdateNavBtn();
     } catch(e) {
         console.warn('[SGT Wallet] Gagal ambil saldo:', e.message);
-        _swtErrMsg('Gagal memuat saldo. Coba lagi sebentar.');
+        const box = document.getElementById('swm-tasks');
+        if (box) box.innerHTML = `<div style="padding:14px;border-radius:10px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.85em;">
+            ⚠️ Gagal memuat saldo dari server pusat.<br><br>
+            <b>Detail teknis:</b> ${(e.message||'unknown error').replace(/</g,'&lt;')}
+        </div>`;
     }
 }
 
