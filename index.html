@@ -5071,8 +5071,7 @@ async function swtSignInPi() {
         console.error('[Pi Login] Error:', e);
         let errMsg = 'Login Pi gagal.';
         if (e.message?.toLowerCase().includes('cancel')) errMsg = 'Login dibatalkan. Silakan coba lagi.';
-        else if (e.message?.toLowerCase().includes('network')) errMsg = 'Gagal terhubung ke Pi Network. Periksa koneksi internet Anda.';
-        else if (e.message) errMsg = 'Login Pi gagal: ' + e.message;
+        else errMsg = 'Login Pi gagal — detail: [' + (e.name||'Error') + '] ' + (e.message || JSON.stringify(e));
         _swtErrMsg(errMsg);
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="50" fill="#7c3aed"/><text y="68" x="50" text-anchor="middle" font-size="60" font-family="serif" font-weight="bold" fill="white">π</text></svg> Masuk dengan Pi Network`; }
