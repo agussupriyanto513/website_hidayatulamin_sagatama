@@ -5095,7 +5095,7 @@ async function _swtCallOwnApi(endpoint, body) {
     return data;
 }
 async function _swtCallCentralBalance() {
-    const res = await fetch('https://sagatama-backend.vercel.app/api/sgt/balance', {
+    const res = await fetch('https://sagatama-mart.vercel.app/api/sgt/balance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accessToken: _swtAccessToken })
