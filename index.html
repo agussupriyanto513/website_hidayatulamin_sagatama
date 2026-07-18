@@ -4940,13 +4940,14 @@ window.addEventListener('scroll', () => {
     </button>
 </div>
 
-<!-- ======= SGT WALLET SYSTEM — Firebase Auth Powered ======= -->
+<!-- ======= SGT WALLET SYSTEM — Pi Network Login Only, Ledger Terpusat ======= -->
 <script>
 // ============================================================
-//  SGT WALLET — Menggunakan Firebase Auth dari portal-sagatama
-//  Data tersimpan di: sgt_users/{uid} dan sgt_leaderboard/{uid}
+//  SGT WALLET — WAJIB login Pi Network, saldo & riwayat SEMUA
+//  hidup di ledger terpusat (backend Mart: sgt_wallets/{username}).
+//  App ini TIDAK menyimpan saldo SGT sendiri di mana pun.
 // ============================================================
-
+const SGT_OWN_BACKEND = ''; // kosong = pakai origin sendiri (relative /api/...)
 const SGT_TASKS = [
     { key:'visit', name:'Kunjungi Portal Harian', desc:'Bonus otomatis tiap hari hadir', pts:10, icon:'👁️', bg:'rgba(16,185,129,0.15)', c:'#5eead4', daily:true },
     { key:'share', name:'Share ke WhatsApp', desc:'Bagikan portal Sagatama ke kontak Anda', pts:25, icon:'📱', bg:'rgba(212,160,23,0.15)', c:'#d4a017' },
@@ -4962,35 +4963,35 @@ const SGT_REDEEM = [
     { key:'buku', name:'Buku Pesantren', emoji:'📖', cost:500, desc:'Buku pembelajaran santri pilihan' },
     { key:'sertif', name:'Sertifikat Digital', emoji:'📜', cost:300, desc:'Sertifikat kontribusi komunitas' },
 ];
+// CATATAN: angka pts/cost di atas HANYA untuk tampilan. Jumlah SGT yang
+// SUNGGUHAN ditambah/dikurang selalu dihitung ulang di server
+// (api/claim-sgt.js, api/redeem-sgt.js) — client tidak bisa memalsukan.
 
-let _swtUser = null;
-let _swtData = { balance:0, totalEarned:0, totalRedeemed:0, claimed:[], lastVisit:'', streak:0, history:[] };
+let _swtUsername = null;     // username Pi, null = belum login
+let _swtAccessToken = null;  // accessToken Pi sesi ini
+let _swtBalance = 0;
 let _swtPendingRedeem = null;
-let _swtIsRegister = false;
+let _swtHistoryLocal = [];   // riwayat lokal (tampilan saja, bukan sumber kebenaran)
 
-// ── Tunggu Firebase siap ──────────────────────────────────
-function _swtWhenReady(fn, n) {
-    n = n||0;
-    if (window.db && firebase.auth) { fn(); return; }
-    if (n>30) return;
-    setTimeout(()=>_swtWhenReady(fn, n+1), 100);
-}
-
-_swtWhenReady(function() {
-    firebase.auth().onAuthStateChanged(user => {
-        _swtUser = user;
-        if (user) {
-            _swtShowWallet(user);
-        } else {
-            _swtShowAuth();
+// ── Pulihkan sesi Pi dari sessionStorage (biar tidak perlu login ulang tiap reload) ──
+(function restoreSession() {
+    try {
+        const saved = JSON.parse(sessionStorage.getItem('swt_pi_session') || 'null');
+        if (saved && saved.username && saved.accessToken) {
+            _swtUsername = saved.username;
+            _swtAccessToken = saved.accessToken;
         }
-        _swtUpdateNavBtn();
-    });
-});
+    } catch(e) {}
+})();
 
 // ── Modal Open/Close ─────────────────────────────────────
 function openSGTWallet() {
     document.getElementById('sgt-wallet-overlay').classList.add('open');
+    if (_swtUsername && _swtAccessToken) {
+        _swtShowWallet();
+    } else {
+        _swtShowAuth();
+    }
 }
 function closeSGTWallet() {
     document.getElementById('sgt-wallet-overlay').classList.remove('open');
@@ -4998,158 +4999,162 @@ function closeSGTWallet() {
 function closeSGTWalletOutside(e) {
     if (e.target.id === 'sgt-wallet-overlay') closeSGTWallet();
 }
+function toggleSGTPanel() { openSGTWallet(); }
 
 // ── Auth Screens ─────────────────────────────────────────
 function _swtShowAuth() {
     document.getElementById('swm-auth').style.display = 'block';
     document.getElementById('swm-wallet').style.display = 'none';
+    // Sembunyikan total opsi Email/Google — Pi Network satu-satunya cara login
+    const hide = ['swm-name','swm-email','swm-pass','swm-auth-btn','swm-toggle'];
+    hide.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    const googleBtn = document.querySelector('.swm-btn-google');
+    if (googleBtn) googleBtn.style.display = 'none';
+    const divider = document.querySelector('.swm-divider');
+    if (divider) divider.style.display = 'none';
+    document.getElementById('swm-auth-title').textContent = 'Masuk ke SGT Wallet';
+    document.getElementById('swm-auth-sub').textContent = 'SGT Wallet sekarang wajib pakai Pi Network — supaya poin Anda otomatis nyambung ke Sagatama Mart & Sagatama Games.';
 }
-function _swtShowWallet(user) {
+function _swtShowWallet() {
     document.getElementById('swm-auth').style.display = 'none';
     document.getElementById('swm-wallet').style.display = 'block';
-    const name = user.displayName || user.email?.split('@')[0] || 'Pengguna';
-    document.getElementById('swm-uname').textContent = name;
-    document.getElementById('swm-avatar').textContent = (name[0]||'U').toUpperCase();
-    _swtLoadData(user.uid);
+    document.getElementById('swm-uname').textContent = '@' + _swtUsername;
+    document.getElementById('swm-avatar').textContent = (_swtUsername[0]||'U').toUpperCase();
+    _swtLoadData();
 }
 function _swtUpdateNavBtn() {
-    const btn = document.getElementById('navSgtBtn');
     const bal = document.getElementById('navSgtBal');
-    if (!btn||!bal) return;
-    if (_swtUser) {
-        bal.textContent = (_swtData.balance||0).toLocaleString('id-ID') + ' SGT';
-    } else {
-        bal.textContent = 'Login';
-    }
+    if (!bal) return;
+    bal.textContent = _swtUsername ? (_swtBalance||0).toLocaleString('id-ID') + ' SGT' : 'Login';
 }
 
-function swtToggleMode() {
-    _swtIsRegister = !_swtIsRegister;
-    document.getElementById('swm-auth-title').textContent = _swtIsRegister ? 'Buat Akun Baru' : 'Masuk ke SGT Wallet';
-    document.getElementById('swm-auth-sub').textContent = _swtIsRegister ? 'Daftarkan diri untuk mulai kumpulkan SGT' : 'Login untuk simpan & gunakan poin SGT Anda secara permanen';
-    document.getElementById('swm-auth-btn-text').textContent = _swtIsRegister ? 'Daftar' : 'Masuk';
-    document.getElementById('swm-name').style.display = _swtIsRegister ? 'block' : 'none';
-    document.getElementById('swm-toggle').innerHTML = _swtIsRegister
-        ? 'Sudah punya akun? <a onclick="swtToggleMode()">Masuk</a>'
-        : 'Belum punya akun? <a onclick="swtToggleMode()">Daftar</a>';
-    _swtErrMsg('');
+// Stub — Email/Google login sudah dimatikan, arahkan ke Pi Network
+function swtSignInGoogle() { swtSignInPi(); }
+function swtHandleAuth() { swtSignInPi(); }
+function swtToggleMode() {}
+function swtSignOut() {
+    _swtUsername = null; _swtAccessToken = null; _swtBalance = 0;
+    try { sessionStorage.removeItem('swt_pi_session'); } catch(e) {}
+    _swtUpdateNavBtn();
+    _swtShowAuth();
 }
 function _swtErrMsg(m) {
     const el = document.getElementById('swm-err');
-    el.textContent = m; el.style.display = m ? 'block' : 'none';
+    if (el) { el.textContent = m; el.style.display = m ? 'block' : 'none'; }
 }
 
-async function swtSignInGoogle() {
+// ── PI LOGIN (satu-satunya cara masuk) ────────────────────
+(function detectPiBrowser() {
+    const isPiBrowser = typeof window.Pi !== 'undefined';
+    const btn = document.getElementById('swm-pi-login-btn');
+    if (btn) btn.style.display = 'flex'; // selalu tampil; kalau bukan Pi Browser, klik akan kasih tahu
+})();
+
+async function swtSignInPi() {
+    if (typeof window.Pi === 'undefined') {
+        alert('SGT Wallet wajib diakses lewat Pi Browser. Silakan buka portal ini lewat aplikasi Pi Browser.');
+        return;
+    }
+    const btn = document.getElementById('swm-pi-login-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menghubungkan Pi...`; }
     try {
         _swtErrMsg('');
-        const p = new firebase.auth.GoogleAuthProvider();
-        await firebase.auth().signInWithPopup(p);
-        closeSGTWallet(); setTimeout(openSGTWallet, 300);
-    } catch(e) { _swtErrMsg(e.message); }
-}
-
-async function swtHandleAuth() {
-    const email = (document.getElementById('swm-email').value||'').trim();
-    const pass = document.getElementById('swm-pass').value||'';
-    const name = (document.getElementById('swm-name').value||'').trim();
-    if (!email||!pass) { _swtErrMsg('Email dan password wajib diisi.'); return; }
-    const btn = document.getElementById('swm-auth-btn');
-    btn.disabled = true;
-    try {
-        _swtErrMsg('');
-        if (_swtIsRegister) {
-            if (!name) { _swtErrMsg('Nama wajib diisi.'); return; }
-            const c = await firebase.auth().createUserWithEmailAndPassword(email, pass);
-            await c.user.updateProfile({ displayName: name });
-        } else {
-            await firebase.auth().signInWithEmailAndPassword(email, pass);
-        }
+        const authResult = await Pi.authenticate(['username', 'payments'], onIncompletePaymentFound);
+        _swtUsername = authResult.user.username;
+        _swtAccessToken = authResult.accessToken;
+        try {
+            sessionStorage.setItem('swt_pi_session', JSON.stringify({ username: _swtUsername, accessToken: _swtAccessToken }));
+        } catch(e) {}
+        _swtShowWallet();
+        showToast('🟣 Login Pi berhasil, @' + _swtUsername + '!');
     } catch(e) {
-        const msgs = { 'auth/user-not-found':'Akun tidak ditemukan.', 'auth/wrong-password':'Password salah.', 'auth/email-already-in-use':'Email sudah terdaftar.', 'auth/weak-password':'Password min 6 karakter.', 'auth/invalid-email':'Format email salah.' };
-        _swtErrMsg(msgs[e.code]||e.message);
-    } finally { btn.disabled = false; }
-}
-
-async function swtSignOut() {
-    await firebase.auth().signOut();
-    _swtData = { balance:0, totalEarned:0, totalRedeemed:0, claimed:[], lastVisit:'', streak:0, history:[] };
-    _swtUpdateNavBtn();
-}
-
-// ── Data ─────────────────────────────────────────────────
-async function _swtLoadData(uid) {
-    try {
-        const doc = await window.db.collection('sgt_users').doc(uid).get();
-        if (doc.exists) {
-            _swtData = { ..._swtData, ...doc.data() };
-        } else {
-            // Cek localStorage lama (migrasi)
-            try {
-                const old = JSON.parse(localStorage.getItem('sgt_data')||'{}');
-                _swtData = { balance: old.balance||10, totalEarned: old.balance||10, totalRedeemed:0, claimed: old.claimed||[], lastVisit: new Date().toDateString(), streak:1, history:[{ key:'visit', pts:10, ts:Date.now(), label:'Kunjungan Pertama' }] };
-            } catch(e) {
-                _swtData = { balance:10, totalEarned:10, totalRedeemed:0, claimed:[], lastVisit: new Date().toDateString(), streak:1, history:[{ key:'visit', pts:10, ts:Date.now(), label:'Kunjungan Pertama' }] };
-            }
-            await _swtSave(uid);
-            showToast('🎉 Selamat datang di SGT Wallet! +10 SGT bonus pertama!');
-        }
-        await _swtAutoVisit(uid);
-        _swtRender();
-        _swtUpdateNavBtn();
-        _swtLoadLB(uid);
-    } catch(e) {
-        console.warn('[SGT Wallet]', e);
-        _swtRender();
+        console.error('[Pi Login] Error:', e);
+        let errMsg = 'Login Pi gagal.';
+        if (e.message?.toLowerCase().includes('cancel')) errMsg = 'Login dibatalkan. Silakan coba lagi.';
+        else if (e.message?.toLowerCase().includes('network')) errMsg = 'Gagal terhubung ke Pi Network. Periksa koneksi internet Anda.';
+        else if (e.message) errMsg = 'Login Pi gagal: ' + e.message;
+        _swtErrMsg(errMsg);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="50" fill="#7c3aed"/><text y="68" x="50" text-anchor="middle" font-size="60" font-family="serif" font-weight="bold" fill="white">π</text></svg> Masuk dengan Pi Network`; }
     }
 }
 
-async function _swtSave(uid) {
+async function onIncompletePaymentFound(payment) {
+    console.warn('[Pi Payment] Incomplete payment found:', payment.identifier);
+    // Pembayaran Pi (bukan SGT) — biarkan diproses lewat alur pi-payment.html seperti biasa.
+}
+
+// ── Data (dari ledger terpusat, bukan Firestore lokal) ────
+async function _swtCallOwnApi(endpoint, body) {
+    const res = await fetch(`${SGT_OWN_BACKEND}/api/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan');
+    return data;
+}
+async function _swtCallCentralBalance() {
+    const res = await fetch('https://sagatama-backend.vercel.app/api/sgt/balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: _swtAccessToken })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal ambil saldo');
+    return data;
+}
+
+async function _swtLoadData() {
     try {
-        await window.db.collection('sgt_users').doc(uid).set(_swtData, { merge:true });
-        const name = _swtUser?.displayName || _swtUser?.email?.split('@')[0] || 'Anonim';
-        await window.db.collection('sgt_leaderboard').doc(uid).set({ name, balance: _swtData.balance, uid }, { merge:true });
-        // Update nav
+        const data = await _swtCallCentralBalance();
+        _swtBalance = data.sgtBalance || 0;
+        try {
+            _swtHistoryLocal = JSON.parse(localStorage.getItem('swt_history_' + _swtUsername) || '[]');
+        } catch(e) { _swtHistoryLocal = []; }
+        _swtRender();
         _swtUpdateNavBtn();
-        // Sync ke SGT lama (backward compat)
-        try { localStorage.setItem('sgt_data', JSON.stringify({ balance:_swtData.balance, claimed:_swtData.claimed, lastVisit:_swtData.lastVisit })); } catch(e){}
     } catch(e) {
-        console.warn('[SGT save]', e);
+        console.warn('[SGT Wallet] Gagal ambil saldo:', e.message);
+        _swtErrMsg('Gagal memuat saldo. Coba lagi sebentar.');
     }
 }
 
-async function _swtAutoVisit(uid) {
-    const today = new Date().toDateString();
-    if (_swtData.lastVisit === today) return;
-    const yest = new Date(Date.now()-86400000).toDateString();
-    const ns = _swtData.lastVisit === yest ? (_swtData.streak||0)+1 : 1;
-    const pts = ns >= 7 ? 20 : 10;
-    _swtData.lastVisit = today;
-    _swtData.streak = ns;
-    _swtData.balance = (_swtData.balance||0) + pts;
-    _swtData.totalEarned = (_swtData.totalEarned||0) + pts;
-    _swtData.history = [{ key:'visit', pts, ts:Date.now(), label:`Kunjungan Harian${ns>1?' · Streak '+ns+' hari':''}` }, ...(_swtData.history||[])].slice(0,60);
-    await _swtSave(uid);
-    setTimeout(()=> showToast(`🪙 +${pts} SGT kunjungan harian! Streak: ${ns} hari${ns>=7?' 🔥':''}`), 2000);
+function _swtPushHistory(entry) {
+    _swtHistoryLocal = [entry, ..._swtHistoryLocal].slice(0, 60);
+    try { localStorage.setItem('swt_history_' + _swtUsername, JSON.stringify(_swtHistoryLocal)); } catch(e) {}
 }
 
 // ── Render ────────────────────────────────────────────────
 function _swtRender() {
-    _swtAnimNum(document.getElementById('swm-bal'), _swtData.balance||0);
-    _swtAnimNum(document.getElementById('swm-earned'), _swtData.totalEarned||0);
-    _swtAnimNum(document.getElementById('swm-redeemed'), _swtData.totalRedeemed||0);
-    if (document.getElementById('swm-streak')) document.getElementById('swm-streak').textContent = _swtData.streak||0;
-    if (document.getElementById('swm-redeem-bal')) document.getElementById('swm-redeem-bal').textContent = (_swtData.balance||0)+' SGT';
+    _swtAnimNum(document.getElementById('swm-bal'), _swtBalance||0);
+    if (document.getElementById('swm-redeem-bal')) document.getElementById('swm-redeem-bal').textContent = (_swtBalance||0)+' SGT';
     _swtRenderTasks();
     _swtRenderRedeem();
 }
+function _swtAnimNum(el, target) {
+    if (!el) return;
+    const start = parseInt(el.textContent.replace(/\D/g,''))||0;
+    const diff = target - start;
+    if (diff===0) return;
+    let s=0; const steps=20;
+    const t = setInterval(()=>{
+        s++;
+        el.textContent = Math.round(start + diff*(s/steps)).toLocaleString('id-ID');
+        if (s>=steps) clearInterval(t);
+    }, 20);
+}
 
+// ── Misi / Klaim SGT (jumlahnya dikunci server, client cuma kirim key) ──
 function _swtRenderTasks() {
-    const today = new Date().toDateString();
     const box = document.getElementById('swm-tasks');
     if (!box) return;
+    const doneToday = _swtHistoryLocal.some(h => h.key==='visit' && new Date(h.ts).toDateString()===new Date().toDateString());
+    const claimedKeys = new Set(_swtHistoryLocal.filter(h=>h.pts>0).map(h=>h.key));
     box.innerHTML = SGT_TASKS.map(t => {
-        const done = t.daily ? _swtData.lastVisit===today : (_swtData.claimed||[]).includes(t.key);
-        return `<div class="swm-task ${done?'swm-done':''}" id="swmt-${t.key}" ${!done?`onclick="_swtClaimTask('${t.key}',${t.pts},this)"`:''}>
+        const done = t.daily ? doneToday : claimedKeys.has(t.key);
+        return `<div class="swm-task ${done?'swm-done':''}" id="swmt-${t.key}" ${!done?`onclick="_swtClaimTask('${t.key}')"`:''}>
             <div class="swm-ticon" style="background:${t.bg};color:${t.c};">${t.icon}</div>
             <div class="swm-tinfo"><div class="swm-tname">${t.name}</div><div class="swm-tdesc">${t.desc}</div></div>
             ${done ? '<i class="fas fa-check-circle" style="color:#10b981;font-size:1.1em;"></i>' : `<div class="swm-tpts">+${t.pts} SGT</div>`}
@@ -5157,58 +5162,46 @@ function _swtRenderTasks() {
     }).join('');
 }
 
+async function _swtClaimTask(key) {
+    if (!_swtUsername || !_swtAccessToken) { openSGTWallet(); return; }
+    const task = SGT_TASKS.find(t=>t.key===key);
+    const el = document.getElementById('swmt-'+key);
+    if (el) el.style.opacity = '0.5';
+    try {
+        const result = await _swtCallOwnApi('claim-sgt', { accessToken: _swtAccessToken, taskKey: key });
+        _swtBalance = result.newBalance;
+        if (result.alreadyClaimed) {
+            showToast('Misi ini sudah pernah diklaim.');
+        } else {
+            _swtPushHistory({ key, pts: result.pointsAwarded, ts: Date.now(), label: task?.name || key });
+            showToast(`🪙 +${result.pointsAwarded} SGT dari "${task?.name||key}"! Total: ${_swtBalance.toLocaleString('id-ID')} SGT`);
+        }
+        _swtRender();
+        _swtUpdateNavBtn();
+    } catch(e) {
+        showToast('Gagal klaim: ' + e.message);
+    } finally {
+        if (el) el.style.opacity = '1';
+    }
+}
+// Alias untuk backward-compat dengan tombol onclick="claimSGT(...)" lama di bagian marketing
+function claimSGT(key) { _swtClaimTask(key); }
+async function _swtConfirmShare(e) {
+    if (e) e.stopPropagation();
+    await _swtClaimTask('share');
+}
+
+// ── Redeem (katalog) ─────────────────────────────────────
 function _swtRenderRedeem() {
     const box = document.getElementById('swm-redeem');
     if (!box) return;
-    const bal = _swtData.balance||0;
-    box.innerHTML = SGT_REDEEM.map(r => {
-        const locked = bal < r.cost;
-        return `<div class="swm-rcard ${locked?'swm-locked':''}" ${!locked?`onclick="_swtOpenConfirm('${r.key}')"`:''} title="${locked?'SGT tidak cukup':'Tukar '+r.name}">
-            <div class="swm-remoji">${r.emoji}</div>
-            <div class="swm-rname">${r.name}</div>
-            <div class="swm-rcost">🪙 ${r.cost} SGT</div>
-            <div class="swm-rdesc">${r.desc}</div>
-        </div>`;
-    }).join('');
+    box.innerHTML = SGT_REDEEM.map(r => `
+        <div class="swm-redeem-item" onclick="_swtOpenConfirm('${r.key}')">
+            <div style="font-size:1.6em;">${r.emoji}</div>
+            <div class="swm-tname">${r.name}</div>
+            <div class="swm-tpts">${r.cost} SGT</div>
+        </div>`).join('');
 }
-
-// ── Task Claim ────────────────────────────────────────────
-async function _swtClaimTask(key, pts, el) {
-    if (!_swtUser||el.classList.contains('swm-done')) return;
-    if (key === 'share') {
-        const txt = encodeURIComponent('Assalamualaikum! Temukan Portal Sagatama — ekosistem digital pesantren modern berbasis Firebase 🕌\n\n🌐 https://portal-sagatama.web.app\n\n🌟 Yayasan Hidayatul Amin Sagatama — Spiritual · Teknologi AI · Ekonomi Mandiri');
-        window.open('https://wa.me/?text='+txt,'_blank');
-        el.querySelector('.swm-tpts').innerHTML = `<button onclick="_swtConfirmShare(event)" style="background:#d4a017;color:#070d1a;border:none;border-radius:6px;padding:4px 8px;font-size:0.7em;font-weight:800;cursor:pointer;">Sudah ✓</button>`;
-        return;
-    }
-    if (key==='mart') window.open('https://sagatama-mart.vercel.app','_blank');
-    if (key==='psb') { closeSGTWallet(); setTimeout(()=>scrollToSection('psb'),300); }
-    if (key==='donasi') { closeSGTWallet(); setTimeout(()=>scrollToSection('donasi'),300); }
-    await _swtAddPts(key, pts, SGT_TASKS.find(t=>t.key===key)?.name||key);
-}
-
-async function _swtConfirmShare(e) {
-    e.stopPropagation();
-    const el = document.getElementById('swmt-share');
-    if (!el||!_swtUser||(_swtData.claimed||[]).includes('share')) { _swtRenderTasks(); return; }
-    await _swtAddPts('share', 25, 'Share ke WhatsApp');
-}
-
-async function _swtAddPts(key, pts, label) {
-    if (!_swtUser) return;
-    const today = new Date().toDateString();
-    if (key==='visit'&&_swtData.lastVisit===today) return;
-    if (key!=='visit'&&(_swtData.claimed||[]).includes(key)) return;
-    if (key!=='visit') _swtData.claimed = [...(_swtData.claimed||[]), key];
-    _swtData.balance = (_swtData.balance||0)+pts;
-    _swtData.totalEarned = (_swtData.totalEarned||0)+pts;
-    _swtData.history = [{ key, pts, ts:Date.now(), label }, ...(_swtData.history||[])].slice(0,60);
-    await _swtSave(_swtUser.uid);
-    _swtRender();
-    showToast(`🪙 +${pts} SGT dari "${label}"! Total: ${_swtData.balance} SGT`);
-}
-
-// ── Redeem ────────────────────────────────────────────────
 function _swtOpenConfirm(key) {
     const r = SGT_REDEEM.find(x=>x.key===key);
     if (!r) return;
@@ -5217,7 +5210,7 @@ function _swtOpenConfirm(key) {
     document.getElementById('swm-c-title').textContent = r.name;
     document.getElementById('swm-c-desc').textContent = r.desc;
     document.getElementById('swm-c-cost').textContent = r.cost+' SGT';
-    document.getElementById('swm-c-after').textContent = ((_swtData.balance||0)-r.cost)+' SGT';
+    document.getElementById('swm-c-after').textContent = Math.max(0,(_swtBalance||0)-r.cost)+' SGT';
     document.getElementById('swm-confirm').classList.add('open');
 }
 function swtCloseConfirm() {
@@ -5225,30 +5218,31 @@ function swtCloseConfirm() {
     _swtPendingRedeem = null;
 }
 async function swtDoRedeem() {
-    if (!_swtPendingRedeem||!_swtUser) return;
+    if (!_swtPendingRedeem || !_swtUsername) return;
     const r = _swtPendingRedeem;
-    _swtData.balance = (_swtData.balance||0) - r.cost;
-    _swtData.totalRedeemed = (_swtData.totalRedeemed||0) + r.cost;
-    _swtData.history = [{ key:'redeem', pts:-r.cost, ts:Date.now(), label:'Tukar: '+r.name }, ...(_swtData.history||[])].slice(0,60);
-    await _swtSave(_swtUser.uid);
-    swtCloseConfirm();
-    _swtRender();
-    _swtRenderHistory();
-    showToast(`🎁 Berhasil! Admin WA akan segera dihubungi untuk klaim "${r.name}"`);
-    setTimeout(()=>{
-        const name = _swtUser.displayName||_swtUser.email;
-        const txt = encodeURIComponent(`Assalamualaikum Admin Sagatama,\n\nSaya ingin menukar poin SGT:\n\n*Nama:* ${name}\n*Email:* ${_swtUser.email}\n*Hadiah:* ${r.name} ${r.emoji}\n*Biaya:* ${r.cost} SGT\n\nMohon konfirmasi penukaran. Jazakallah.`);
-        window.open('https://wa.me/6285213346061?text='+txt,'_blank');
-    }, 800);
+    try {
+        const result = await _swtCallOwnApi('redeem-sgt', { accessToken: _swtAccessToken, mode: 'catalog', key: r.key });
+        _swtBalance = result.newBalance;
+        _swtPushHistory({ key:'redeem', pts:-r.cost, ts:Date.now(), label:'Tukar: '+r.name });
+        swtCloseConfirm();
+        _swtRender(); _swtRenderHistory(); _swtUpdateNavBtn();
+        showToast(`🎁 Berhasil! Admin WA akan segera dihubungi untuk klaim "${r.name}"`);
+        setTimeout(()=>{
+            const txt = encodeURIComponent(`Assalamualaikum Admin Sagatama,\n\nSaya ingin menukar poin SGT:\n\n*Username Pi:* @${_swtUsername}\n*Hadiah:* ${r.name} ${r.emoji}\n*Biaya:* ${r.cost} SGT\n\nMohon konfirmasi penukaran. Jazakallah.`);
+            window.open('https://wa.me/6285213346061?text='+txt,'_blank');
+        }, 800);
+    } catch(e) {
+        alert('Gagal menukar: ' + e.message);
+    }
 }
 
-// ── History ───────────────────────────────────────────────
+// ── History (tampilan lokal saja) ────────────────────────
 function _swtRenderHistory() {
     const box = document.getElementById('swm-history');
     if (!box) return;
-    const hist = _swtData.history||[];
+    const hist = _swtHistoryLocal||[];
     if (!hist.length) { box.innerHTML = '<div class="swm-empty">Belum ada transaksi</div>'; return; }
-    const ICONS = { visit:'👁️', share:'📱', mart:'🛍️', psb:'📝', donasi:'❤️', redeem:'🎁' };
+    const ICONS = { visit:'👁️', share:'📱', mart:'🛍️', psb:'📝', donasi:'❤️', redeem:'🎁', exchange_pi:'🔄', exchange_rp:'💵' };
     const BGAS = { visit:'rgba(16,185,129,0.15)', share:'rgba(212,160,23,0.15)', mart:'rgba(13,148,136,0.15)', psb:'rgba(124,58,237,0.15)', donasi:'rgba(212,160,23,0.15)', redeem:'rgba(239,68,68,0.15)' };
     box.innerHTML = hist.slice(0,20).map(h=>{
         const d = new Date(h.ts);
@@ -5263,32 +5257,13 @@ function _swtRenderHistory() {
     }).join('');
 }
 
-// ── Leaderboard ───────────────────────────────────────────
-async function _swtLoadLB(myUid) {
-    try {
-        const snap = await window.db.collection('sgt_leaderboard').orderBy('balance','desc').limit(10).get();
-        const box = document.getElementById('swm-lb');
-        if (!box) return;
-        if (snap.empty) { box.innerHTML = '<div class="swm-empty">Belum ada data</div>'; return; }
-        let myRank = '—';
-        box.innerHTML = snap.docs.map((doc,i)=>{
-            const d = doc.data();
-            const isMe = doc.id === myUid;
-            if (isMe) myRank = '#'+(i+1);
-            const rc = i===0?'r1':i===1?'r2':i===2?'r3':'';
-            const ri = i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1);
-            return `<div class="swm-lbitem ${isMe?'swm-me':''}">
-                <div class="swm-lbrank ${rc}">${ri}</div>
-                <div class="swm-lbav">${(d.name||'?')[0].toUpperCase()}</div>
-                <div class="swm-lbname">${d.name||'Anonim'}${isMe?' <span style="font-size:0.7em;color:#d4a017;">(Anda)</span>':''}</div>
-                <div class="swm-lbpts">${(d.balance||0).toLocaleString('id-ID')} SGT</div>
-            </div>`;
-        }).join('');
-        if (document.getElementById('swm-rank')) document.getElementById('swm-rank').textContent = myRank;
-    } catch(e) {
-        const box = document.getElementById('swm-lb');
-        if (box) box.innerHTML = '<div class="swm-empty">Gagal memuat data</div>';
-    }
+// ── Leaderboard — dinonaktifkan sementara ────────────────
+// (leaderboard lama berbasis Firestore lokal per-uid app ini; karena
+// identitas sekarang berbasis username Pi terpusat, leaderboard akan
+// dibangun ulang di backend Mart nanti kalau dibutuhkan)
+async function _swtLoadLB() {
+    const box = document.getElementById('swm-lb');
+    if (box) box.innerHTML = '<div class="swm-empty">Papan peringkat akan segera hadir</div>';
 }
 
 // ── Tabs ──────────────────────────────────────────────────
@@ -5300,150 +5275,8 @@ function swtTab(id, btn) {
     });
     btn.classList.add('active');
     if (id==='riwayat') _swtRenderHistory();
-    if (id==='papan'&&_swtUser) _swtLoadLB(_swtUser.uid);
+    if (id==='papan') _swtLoadLB();
     if (id==='tukar') _swtRenderRedeem();
-}
-
-// ── Number animate ────────────────────────────────────────
-function _swtAnimNum(el, target) {
-    if (!el) return;
-    const start = parseInt(el.textContent.replace(/\D/g,''))||0;
-    const diff = target - start;
-    if (diff===0) return;
-    let s=0; const steps=20;
-    const t = setInterval(()=>{
-        s++;
-        el.textContent = Math.round(start + diff*(s/steps)).toLocaleString('id-ID');
-        if (s>=steps) clearInterval(t);
-    }, 20);
-}
-
-// ── Backward compat: old panel still works ────────────────
-function toggleSGTPanel() { openSGTWallet(); }
-
-// ── PI BROWSER DETECTION & PI LOGIN ──────────────────────────
-(function detectPiBrowser() {
-    // Pi Browser menyuntikkan window.Pi
-    const isPiBrowser = typeof window.Pi !== 'undefined';
-    const btn = document.getElementById('swm-pi-login-btn');
-    if (btn && isPiBrowser) {
-        btn.style.display = 'flex';
-    }
-})();
-
-async function swtSignInPi() {
-    if (typeof window.Pi === 'undefined') {
-        alert('Fitur ini hanya tersedia di Pi Browser. Silakan buka portal ini melalui Pi Browser.');
-        return;
-    }
-    const btn = document.getElementById('swm-pi-login-btn');
-    if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menghubungkan Pi...`; }
-    try {
-        _swtErrMsg('');
-        // Autentikasi dengan Pi SDK — minta akses username, payments, dan wallet_address
-        const authResult = await Pi.authenticate(['username', 'payments', 'wallet_address'], onIncompletePaymentFound);
-        const piUser = authResult.user;
-        const piUsername = piUser.username;
-        const piUid = piUser.uid || piUsername;
-
-        // Coba ambil wallet_address dari berbagai lokasi di response Pi SDK
-        const piWallet =
-            authResult.user?.wallet_address ||
-            authResult.wallet_address ||
-            authResult.walletAddress ||
-            '';
-
-        console.log('[Pi Login] username:', piUsername);
-        console.log('[Pi Login] wallet_address raw:', authResult.user?.wallet_address);
-        console.log('[Pi Login] wallet resolved:', piWallet || '(kosong — user belum KYC atau wallet belum aktif)');
-
-        // Simpan sesi Pi ke Firebase menggunakan anonymous auth sebagai carrier session
-        let firebaseUser = firebase.auth().currentUser;
-        if (!firebaseUser) {
-            const anonCred = await firebase.auth().signInAnonymously();
-            firebaseUser = anonCred.user;
-        }
-
-        // Update display name dengan username Pi
-        await firebaseUser.updateProfile({ displayName: '🟣 ' + piUsername });
-
-        // Simpan info Pi ke Firestore
-        await window.db.collection('sgt_users').doc(firebaseUser.uid).set({
-            piUsername: piUsername,
-            piUid: piUid,
-            piWalletAddress: piWallet,
-            loginMethod: 'pi_network',
-            lastPiLogin: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-
-        // Auto-isi field alamat Pi Wallet jika wallet_address berhasil didapat
-        const walletInput = document.getElementById('swm-pi-wallet-addr');
-        if (walletInput) {
-            if (piWallet) {
-                walletInput.value = piWallet;
-                walletInput.setAttribute('readonly', 'readonly');
-                walletInput.style.background = 'rgba(124,58,237,0.12)';
-                walletInput.style.borderColor = 'rgba(124,58,237,0.4)';
-                walletInput.style.color = '#c4b5fd';
-                // Tambah label info
-                const walletHint = document.getElementById('swm-pi-wallet-hint');
-                if (walletHint) {
-                    walletHint.textContent = '✅ Wallet address terdeteksi otomatis dari Pi Browser';
-                    walletHint.style.color = '#86efac';
-                }
-            } else {
-                // Wallet kosong — user belum KYC / wallet belum diaktifkan
-                walletInput.removeAttribute('readonly');
-                walletInput.placeholder = '@' + piUsername + ' (isi manual — wallet belum terdeteksi)';
-                walletInput.style.background = '';
-                walletInput.style.borderColor = 'rgba(251,191,36,0.4)';
-                const walletHint = document.getElementById('swm-pi-wallet-hint');
-                if (walletHint) {
-                    walletHint.textContent = '⚠️ Wallet address tidak terdeteksi otomatis. Isi username Pi (@' + piUsername + ') atau alamat wallet Anda secara manual.';
-                    walletHint.style.color = '#fbbf24';
-                }
-            }
-        }
-
-        // Tutup dan buka ulang wallet agar render ulang
-        closeSGTWallet();
-        setTimeout(openSGTWallet, 300);
-
-        const walletMsg = piWallet
-            ? '🟣 Login Pi berhasil! Wallet terdeteksi otomatis.'
-            : '🟣 Login Pi berhasil, @' + piUsername + '! Isi wallet address secara manual untuk penukaran Pi.';
-        showToast(walletMsg);
-
-    } catch(e) {
-        console.error('[Pi Login] Error:', e);
-        // Pesan error yang lebih informatif
-        let errMsg = 'Login Pi gagal.';
-        if (e.message?.includes('cancelled') || e.message?.includes('cancel')) {
-            errMsg = 'Login dibatalkan. Silakan coba lagi.';
-        } else if (e.message?.includes('network') || e.message?.includes('Network')) {
-            errMsg = 'Gagal terhubung ke Pi Network. Periksa koneksi internet Anda.';
-        } else if (e.message) {
-            errMsg = 'Login Pi gagal: ' + e.message;
-        }
-        _swtErrMsg(errMsg);
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="50" fill="#7c3aed"/><text y="68" x="50" text-anchor="middle" font-size="60" font-family="serif" font-weight="bold" fill="white">π</text></svg> Masuk dengan Pi Network`; }
-    }
-}
-
-// Tangani pembayaran Pi yang belum selesai (wajib ada untuk Pi SDK)
-async function onIncompletePaymentFound(payment) {
-    console.warn('[Pi Payment] Incomplete payment found:', payment.identifier);
-    // Laporkan ke backend/Firestore untuk diproses admin
-    try {
-        await window.db.collection('pi_incomplete_payments').doc(payment.identifier).set({
-            paymentId: payment.identifier,
-            amount: payment.amount,
-            memo: payment.memo,
-            status: 'incomplete',
-            reportedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-    } catch(e) { console.warn('[Pi] Gagal simpan incomplete payment:', e); }
 }
 
 // ── Preview & Request: SGT → Pi ────────────────────────────
@@ -5455,54 +5288,28 @@ function swtUpdatePiPreview() {
     if (res) res.textContent = pi + ' Pi';
     if (prev && amt >= 500) {
         prev.style.display = 'block';
-        const bal = parseInt(document.getElementById('swm-bal')?.textContent?.replace(/\D/g,''))||0;
         document.getElementById('prev-sgt').textContent = amt.toLocaleString('id-ID') + ' SGT';
         document.getElementById('prev-pi').textContent = pi + ' Pi';
-        document.getElementById('prev-sisa').textContent = Math.max(0, bal-amt).toLocaleString('id-ID') + ' SGT';
+        document.getElementById('prev-sisa').textContent = Math.max(0, (_swtBalance||0)-amt).toLocaleString('id-ID') + ' SGT';
     } else if (prev) prev.style.display = 'none';
 }
-
 async function swtRequestPi() {
-    if (!_swtUser) return alert('Silakan login ke Wallet terlebih dahulu.');
+    if (!_swtUsername) return alert('Silakan login ke Wallet dengan Pi Network terlebih dahulu.');
     const amt = parseInt(document.getElementById('swm-pi-sgt-amt')?.value) || 0;
     let wallet = document.getElementById('swm-pi-wallet-addr')?.value?.trim();
-    const bal = _swtData?.balance || 0;
     if (amt < 500 || amt % 500 !== 0) return alert('Minimal 500 SGT, kelipatan 500.');
-    if (!wallet) return alert('Masukkan alamat Pi Wallet atau username Pi (@username) Anda.');
-    // Normalisasi: pastikan username Pi diawali @
-    if (!wallet.startsWith('@') && !wallet.startsWith('G') && wallet.length < 56) {
-        wallet = '@' + wallet;
-    }
-    // Validasi minimal: username minimal 3 karakter atau alamat wallet Pi (dimulai G, 56 karakter)
-    const isUsername = wallet.startsWith('@') && wallet.length >= 4;
-    const isPiAddress = wallet.startsWith('G') && wallet.length === 56;
-    if (!isUsername && !isPiAddress) {
-        return alert('Format wallet tidak valid.\nGunakan username Pi (contoh: @namaAnda) atau alamat wallet Pi (56 karakter diawali G).');
-    }
-    if (amt > bal) return alert('Saldo SGT tidak cukup! Saldo kamu: ' + bal + ' SGT');
+    if (!wallet) wallet = '@' + _swtUsername;
+    if (amt > (_swtBalance||0)) return alert('Saldo SGT tidak cukup! Saldo kamu: ' + _swtBalance + ' SGT');
     const btn = document.getElementById('swm-pi-submit-btn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...'; }
     try {
-        await window.db.collection('sgt_exchange_requests').add({
-            uid: _swtUser.uid, email: _swtUser.email || '',
-            type: 'SGT_TO_PI', sgtAmount: amt, piAmount: amt / 500,
-            piWallet: wallet, status: 'pending',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        // Mutasi _swtData langsung, lalu panggil _swtSave(uid)
-        _swtData.balance = bal - amt;
-        _swtData.totalRedeemed = (_swtData.totalRedeemed || 0) + amt;
-        _swtData.history = [{ key: 'exchange_pi', pts: -amt, ts: Date.now(), label: 'Tukar ' + amt + ' SGT → ' + (amt/500).toFixed(2) + ' Pi' }, ...(_swtData.history || [])].slice(0, 60);
-        await _swtSave(_swtUser.uid);
-        _swtUpdateUI();
+        const result = await _swtCallOwnApi('redeem-sgt', { accessToken: _swtAccessToken, mode:'exchange', exchangeType:'pi', amount: amt });
+        _swtBalance = result.newBalance;
+        _swtPushHistory({ key:'exchange_pi', pts:-amt, ts:Date.now(), label:'Tukar '+amt+' SGT → '+(amt/500).toFixed(2)+' Pi' });
+        _swtRender(); _swtUpdateNavBtn();
         document.getElementById('swm-pi-sgt-amt').value = '';
-        // Hanya reset wallet input jika bukan auto-filled dari Pi SDK
-        const walletInput = document.getElementById('swm-pi-wallet-addr');
-        if (walletInput && !walletInput.hasAttribute('readonly')) {
-            walletInput.value = '';
-        }
         swtUpdatePiPreview();
-        alert('✅ Permintaan penukaran Pi berhasil diajukan!\nAdmin akan transfer dalam 1×24 jam.');
+        alert('✅ Permintaan penukaran Pi berhasil diajukan!\nAdmin akan transfer dalam 1×24 jam ke @'+_swtUsername+'.');
     } catch (e) { alert('Gagal mengajukan: ' + e.message); }
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-circle-nodes"></i> Ajukan Penukaran Pi'; }
 }
@@ -5514,48 +5321,24 @@ function swtUpdateRpPreview() {
     const res = document.getElementById('swm-rp-result');
     if (res) res.textContent = rp > 0 ? 'Rp ' + rp.toLocaleString('id-ID') : 'Rp 0';
 }
-
 async function swtRequestRupiah() {
-    if (!_swtUser) return alert('Silakan login ke Wallet terlebih dahulu.');
+    if (!_swtUsername) return alert('Silakan login ke Wallet dengan Pi Network terlebih dahulu.');
     const amt = parseInt(document.getElementById('swm-rp-sgt-amt')?.value) || 0;
     const bank = document.getElementById('swm-rp-bank')?.value?.trim();
-    const bal = _swtData?.balance || 0;
     const msgEl = document.getElementById('swm-rp-msg');
-
-    // Validasi
     if (amt < 1000 || amt % 1000 !== 0) return alert('Minimal 1.000 SGT, kelipatan 1.000.');
     if (!bank) return alert('Masukkan nomor rekening bank tujuan.');
-    if (amt > bal) return alert('Saldo SGT tidak cukup! Saldo kamu: ' + bal.toLocaleString('id-ID') + ' SGT');
-
+    if (amt > (_swtBalance||0)) return alert('Saldo SGT tidak cukup! Saldo kamu: ' + (_swtBalance||0).toLocaleString('id-ID') + ' SGT');
     if (msgEl) msgEl.style.display = 'none';
-
     try {
         const rupiahAmt = (amt / 1000) * 10000;
-        // Simpan request ke Firestore
-        await window.db.collection('sgt_exchange_requests').add({
-            uid: _swtUser.uid,
-            email: _swtUser.email || '',
-            type: 'SGT_TO_RUPIAH',
-            sgtAmount: amt,
-            rupiahAmount: rupiahAmt,
-            bankInfo: bank,
-            status: 'pending',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        // Mutasi _swtData langsung, lalu panggil _swtSave(uid)
-        _swtData.balance = bal - amt;
-        _swtData.totalRedeemed = (_swtData.totalRedeemed || 0) + amt;
-        _swtData.history = [{
-            key: 'exchange_rp', pts: -amt, ts: Date.now(),
-            label: 'Tukar ' + amt.toLocaleString('id-ID') + ' SGT → Rp ' + rupiahAmt.toLocaleString('id-ID')
-        }, ...(_swtData.history || [])].slice(0, 60);
-        await _swtSave(_swtUser.uid);
-        _swtUpdateUI();
-        // Reset form
+        const result = await _swtCallOwnApi('redeem-sgt', { accessToken: _swtAccessToken, mode:'exchange', exchangeType:'rupiah', amount: amt });
+        _swtBalance = result.newBalance;
+        _swtPushHistory({ key:'exchange_rp', pts:-amt, ts:Date.now(), label:'Tukar '+amt.toLocaleString('id-ID')+' SGT → Rp '+rupiahAmt.toLocaleString('id-ID') });
+        _swtRender(); _swtUpdateNavBtn();
         document.getElementById('swm-rp-sgt-amt').value = '';
         document.getElementById('swm-rp-bank').value = '';
         swtUpdateRpPreview();
-        // Tampilkan pesan sukses
         if (msgEl) {
             msgEl.style.cssText = 'display:block;margin-top:10px;padding:10px 12px;border-radius:9px;font-size:0.78em;text-align:center;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);color:#6ee7b7;';
             msgEl.textContent = '✅ Berhasil! Transfer Rp ' + rupiahAmt.toLocaleString('id-ID') + ' akan diproses admin dalam 1×24 jam hari kerja.';
@@ -5567,6 +5350,12 @@ async function swtRequestRupiah() {
         }
     }
 }
+
+// ── Init tampilan nav saat page load ─────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    _swtUpdateNavBtn();
+    if (_swtUsername && _swtAccessToken) _swtLoadData();
+});
 </script>
 
 <script>
