@@ -9,6 +9,27 @@
 
 const PI_API_KEY  = process.env.PI_SERVER_API_KEY;
 const PI_API_BASE = "https://api.minepi.com";
+const SGT_BACKEND  = process.env.SGT_BACKEND_URL || "https://sagatama-mart.vercel.app";
+const DONATION_SGT_REWARD = 200; // dikunci di server, sama seperti yang ditampilkan di wallet
+
+async function creditDonationSGT(username, paymentId) {
+  const secret = process.env.SGT_INTERNAL_SECRET;
+  if (!secret || !username) return;
+  try {
+    await fetch(`${SGT_BACKEND}/api/sgt/credit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Internal-Secret': secret },
+      body: JSON.stringify({
+        username, amount: DONATION_SGT_REWARD,
+        txId: `yayasan_donasi_${paymentId}`, // idempotent per paymentId nyata
+        source: 'yayasan_donasi',
+        meta: { paymentId }
+      })
+    });
+  } catch (e) {
+    console.error('[complete] Gagal kredit SGT donasi:', e.message);
+  }
+}
 
 const ALLOWED_ORIGINS = [
     "https://sagatama-mart.vercel.app",
@@ -88,6 +109,9 @@ export default async function handler(req, res) {
         // 2. Cek sudah di-complete sebelumnya (idempotent)
         if (piPayment.status?.developer_completed) {
             console.log(`[Pi] Payment ${paymentId} sudah di-complete sebelumnya`);
+            const t = piPayment.metadata?.type;
+            const u = piPayment.metadata?.piUsername;
+            if (t === 'donasi' && u) await creditDonationSGT(u, paymentId); // aman, idempotent by txId
             return res.status(200).json({ success: true, message: "Sudah di-complete sebelumnya" });
         }
 
@@ -100,6 +124,16 @@ export default async function handler(req, res) {
         await piPost(`/v2/payments/${paymentId}/complete`, { txid });
 
         console.log(`[Pi] Payment ${paymentId} completed. txid: ${txid}`);
+
+        // 5. Kalau ini pembayaran DONASI sungguhan yang baru saja lunas,
+        //    kreditkan bonus SGT ke ledger terpusat — otomatis dari server,
+        //    BUKAN dari tombol klaim manual di wallet (supaya tidak bisa
+        //    diklaim tanpa donasi beneran).
+        const paymentType = piPayment.metadata?.type;
+        const piUsername = piPayment.metadata?.piUsername;
+        if (paymentType === 'donasi' && piUsername) {
+            await creditDonationSGT(piUsername, paymentId);
+        }
 
         return res.status(200).json({
             success:   true,
