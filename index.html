@@ -4807,6 +4807,11 @@ window.addEventListener('scroll', () => {
             `*Alasan:* ${alasan}`;
         document.getElementById('overlay').style.display = 'block';
         document.getElementById('msgBox').style.display = 'block';
+        // Form beneran disubmit — baru sekarang SGT-nya diberikan (kalau user
+        // sudah login Pi). Ini menggantikan tombol klaim manual di wallet.
+        if (typeof _swtUsername !== 'undefined' && _swtUsername) {
+            _swtClaimTask('psb');
+        }
         setTimeout(() => {
             window.open(`https://wa.me/${waNumber}?text=${text}`, '_blank');
         }, 1000);
@@ -4935,11 +4940,6 @@ window.addEventListener('scroll', () => {
         </div>
     </div>
     <button class="sgt-fab" onclick="toggleSGTPanel()" title="Klaim Token SGT">
-        SGT
-        <span class="sgt-badge-count" id="sgtNotif">5</span>
-    </button>
-</div>
-
 <!-- ======= SGT WALLET SYSTEM — Pi Network Login Only, Ledger Terpusat ======= -->
 <script>
 // ============================================================
@@ -4949,11 +4949,11 @@ window.addEventListener('scroll', () => {
 // ============================================================
 const SGT_OWN_BACKEND = ''; // kosong = pakai origin sendiri (relative /api/...)
 const SGT_TASKS = [
-    { key:'visit', name:'Kunjungi Portal Harian', desc:'Bonus otomatis tiap hari hadir', pts:10, icon:'👁️', bg:'rgba(16,185,129,0.15)', c:'#5eead4', daily:true },
-    { key:'share', name:'Share ke WhatsApp', desc:'Bagikan portal Sagatama ke kontak Anda', pts:25, icon:'📱', bg:'rgba(212,160,23,0.15)', c:'#d4a017' },
-    { key:'mart', name:'Kunjungi Sagatama Mart', desc:'Buka toko dan lihat produk unggulan', pts:50, icon:'🛍️', bg:'rgba(13,148,136,0.15)', c:'#5eead4' },
-    { key:'psb', name:'Isi Form Pendaftaran', desc:'Daftar sebagai calon santri baru', pts:100, icon:'📝', bg:'rgba(124,58,237,0.15)', c:'#c4b5fd' },
-    { key:'donasi', name:'Lakukan Donasi', desc:'Dukung pembangunan yayasan Sagatama', pts:200, icon:'❤️', bg:'rgba(212,160,23,0.15)', c:'#d4a017' },
+    { key:'visit', name:'Kunjungi Portal Harian', desc:'Bonus otomatis tiap hari hadir', pts:10, icon:'👁️', bg:'rgba(16,185,129,0.15)', c:'#5eead4', daily:true, manual:true },
+    { key:'share', name:'Share ke WhatsApp', desc:'Bagikan portal Sagatama ke kontak Anda', pts:25, icon:'📱', bg:'rgba(212,160,23,0.15)', c:'#d4a017', manual:true },
+    { key:'mart', name:'Kunjungi Sagatama Mart', desc:'Buka toko dan lihat produk unggulan', pts:50, icon:'🛍️', bg:'rgba(13,148,136,0.15)', c:'#5eead4', manual:true },
+    { key:'psb', name:'Isi Form Pendaftaran', desc:'Otomatis didapat setelah form pendaftaran santri baru disubmit', pts:100, icon:'📝', bg:'rgba(124,58,237,0.15)', c:'#c4b5fd', manual:false, link:'psb' },
+    { key:'donasi', name:'Lakukan Donasi', desc:'Otomatis didapat setelah donasi Pi Anda selesai diproses', pts:200, icon:'❤️', bg:'rgba(212,160,23,0.15)', c:'#d4a017', manual:false, link:'donasi' },
 ];
 const SGT_REDEEM = [
     { key:'disc5', name:'Diskon 5% Mart', emoji:'🏷️', cost:200, desc:'Kupon diskon 5% di Sagatama Mart' },
@@ -5157,6 +5157,15 @@ function _swtRenderTasks() {
     const claimedKeys = new Set(_swtHistoryLocal.filter(h=>h.pts>0).map(h=>h.key));
     box.innerHTML = SGT_TASKS.map(t => {
         const done = t.daily ? doneToday : claimedKeys.has(t.key);
+        if (!t.manual) {
+            // Tugas otomatis (psb/donasi) — bukan tombol klaim, cuma info +
+            // arahkan ke bagian yang relevan di halaman.
+            return `<div class="swm-task" style="opacity:0.85;cursor:pointer;" onclick="scrollToSection('${t.link}');closeSGTWallet();">
+                <div class="swm-ticon" style="background:${t.bg};color:${t.c};">${t.icon}</div>
+                <div class="swm-tinfo"><div class="swm-tname">${t.name}</div><div class="swm-tdesc">${t.desc}</div></div>
+                <div class="swm-tpts" style="opacity:0.7;">+${t.pts} SGT</div>
+            </div>`;
+        }
         return `<div class="swm-task ${done?'swm-done':''}" id="swmt-${t.key}" ${!done?`onclick="_swtClaimTask('${t.key}')"`:''}>
             <div class="swm-ticon" style="background:${t.bg};color:${t.c};">${t.icon}</div>
             <div class="swm-tinfo"><div class="swm-tname">${t.name}</div><div class="swm-tdesc">${t.desc}</div></div>
@@ -5170,6 +5179,16 @@ async function _swtClaimTask(key) {
     const task = SGT_TASKS.find(t=>t.key===key);
     const el = document.getElementById('swmt-'+key);
     if (el) el.style.opacity = '0.5';
+
+    // Verifikasi ringan: buka aksi asli dulu SEBELUM kredit diproses,
+    // supaya bukan sekadar klik tanpa benar-benar melakukan apa pun.
+    if (key === 'share') {
+        const txt = encodeURIComponent('Yuk kenalan sama Sagatama — ekosistem digital Pi Network untuk pendidikan & UMKM! ' + location.origin);
+        window.open('https://wa.me/?text=' + txt, '_blank');
+    } else if (key === 'mart') {
+        window.open('https://sagatama-mart.vercel.app', '_blank');
+    }
+
     try {
         const result = await _swtCallOwnApi('claim-sgt', { accessToken: _swtAccessToken, taskKey: key });
         _swtBalance = result.newBalance;
@@ -5359,6 +5378,11 @@ document.addEventListener('DOMContentLoaded', () => {
     _swtUpdateNavBtn();
     if (_swtUsername && _swtAccessToken) _swtLoadData();
 });
+</script>
+            msgEl.textContent = '❌ Gagal mengajukan: ' + e.message;
+        }
+    }
+}
 </script>
 
 <script>
