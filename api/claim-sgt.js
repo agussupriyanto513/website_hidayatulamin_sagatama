@@ -16,7 +16,9 @@ const TASKS = {
   share:  { pts: 25,  daily: false, label: 'Share ke WhatsApp' },
   mart:   { pts: 50,  daily: false, label: 'Kunjungi Sagatama Mart' },
   psb:    { pts: 100, daily: false, label: 'Isi Form Pendaftaran' },
-  donasi: { pts: 200, daily: false, label: 'Lakukan Donasi' },
+  // 'donasi' SENGAJA tidak ada di sini lagi — SGT untuk donasi sekarang
+  // dikreditkan otomatis dari api/payments/complete.js setelah pembayaran
+  // Pi donasi sungguhan lunas, bukan lewat endpoint klaim manual ini.
 };
 
 function setCors(res) {
